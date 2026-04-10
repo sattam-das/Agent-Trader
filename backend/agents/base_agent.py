@@ -63,6 +63,22 @@ class MacroAnalysis(BaseModel):
     summary: str = Field(min_length=1)
 
 
+class DiscoverySuggestion(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    ticker: str = Field(min_length=1, max_length=12)
+    company_name: str = Field(min_length=1)
+    reason: str = Field(min_length=1)
+    confidence: float = Field(ge=0.0, le=1.0)
+
+
+class DiscoveryAnalysis(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    suggestions: list[DiscoverySuggestion] = Field(default_factory=list)
+    summary: str = Field(min_length=1)
+
+
 # ------------------------------------------------------------------
 # Base Agent
 # ------------------------------------------------------------------

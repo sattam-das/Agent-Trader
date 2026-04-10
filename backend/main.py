@@ -14,12 +14,14 @@ from typing import Any, Optional
 import pandas as pd
 import yfinance as yf
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from backend.agents import (
+    DiscoveryAgent,
+    DiscoverySuggestion,
     FinancialAgent,
     MacroAgent,
     NewsAgent,
@@ -123,6 +125,16 @@ class HealthResponse(BaseModel):
     version: str
 
 
+class DiscoverResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    fetched_at: str
+    model: str
+    latency_ms: int
+    summary: str
+    suggestions: list[DiscoverySuggestion]
+
+
 # ------------------------------------------------------------------
 # Helpers
 # ------------------------------------------------------------------
@@ -138,6 +150,14 @@ def _build_agents() -> tuple[NewsAgent, FinancialAgent, RiskAgent, TechnicalAgen
         TechnicalAgent(api_key=groq_key),
         MacroAgent(api_key=groq_key),
     )
+
+
+def _build_discovery_agent() -> DiscoveryAgent:
+    groq_key = os.getenv("GROQ_API_KEY")
+    if not groq_key:
+        raise HTTPException(status_code=500, detail="Missing GROQ_API_KEY")
+
+    return DiscoveryAgent(api_key=groq_key)
 
 
 def _get_fetcher() -> DataFetcher:
@@ -191,6 +211,47 @@ def _run_simulation(
 @app.get("/health", response_model=HealthResponse)
 async def health() -> HealthResponse:
     return HealthResponse(status="ok", version="3.0.0")
+
+
+@app.get("/discover", response_model=DiscoverResponse)
+async def discover_stocks(
+    use_cache: bool = True,
+    max_cache_age_hours: int | None = Query(default=6, ge=1),
+    exclude_tickers: list[str] | None = Query(default=None),
+) -> DiscoverResponse:
+    fetcher = _get_fetcher()
+    discovery_agent = _build_discovery_agent()
+    start = perf_counter()
+
+    try:
+        market_context = await asyncio.to_thread(
+            fetcher.get_market_news_context,
+            use_cache,
+            max_cache_age_hours,
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"Failed to fetch market discovery context: {exc}") from exc
+
+    try:
+        discovery_result = await discovery_agent.analyze(
+            market_context,
+            exclude_tickers=exclude_tickers or [],
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Discovery agent failed: {exc}") from exc
+
+    if not discovery_result.suggestions:
+        raise HTTPException(status_code=404, detail="No discovery suggestions available right now.")
+
+    latency_ms = int((perf_counter() - start) * 1000)
+
+    return DiscoverResponse(
+        fetched_at=str(market_context.get("fetched_at") or ""),
+        model=discovery_agent.model,
+        latency_ms=latency_ms,
+        summary=discovery_result.summary,
+        suggestions=discovery_result.suggestions,
+    )
 
 
 @app.post("/analyze", response_model=AnalyzeResponse)

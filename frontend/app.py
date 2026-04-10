@@ -11,6 +11,7 @@ Features:
 
 from __future__ import annotations
 
+from html import escape
 import os
 from typing import Any
 
@@ -67,6 +68,23 @@ def _request_compare(api_url: str, tickers: list[str], use_cache: bool) -> dict[
     payload = {"tickers": tickers, "use_cache": use_cache}
     with httpx.Client(timeout=120.0) as client:
         response = client.post(f"{api_url.rstrip('/')}/compare", json=payload)
+    response.raise_for_status()
+    return response.json()
+
+
+def _request_discovery(
+    api_url: str,
+    max_age: int | None,
+    exclude_tickers: list[str],
+) -> dict[str, Any]:
+    params: list[tuple[str, str | int]] = [("use_cache", "false")]
+    if max_age is not None:
+        params.append(("max_cache_age_hours", max_age))
+    for ticker in exclude_tickers:
+        params.append(("exclude_tickers", ticker))
+
+    with httpx.Client(timeout=60.0) as client:
+        response = client.get(f"{api_url.rstrip('/')}/discover", params=params)
     response.raise_for_status()
     return response.json()
 
@@ -380,6 +398,13 @@ def main() -> None:
         initial_sidebar_state="expanded",
     )
 
+    if "analysis_ticker" not in st.session_state:
+        st.session_state["analysis_ticker"] = "AAPL"
+    if "auto_run_analysis" not in st.session_state:
+        st.session_state["auto_run_analysis"] = False
+    if "discovered_seen_tickers" not in st.session_state:
+        st.session_state["discovered_seen_tickers"] = []
+
     # Custom CSS
     st.markdown(f"""
     <style>
@@ -489,12 +514,101 @@ def main() -> None:
         compare_btn = st.button("Compare", use_container_width=True)
 
     # Main input
+    st.markdown("### 🔎 Discover New Stocks")
+    discover_col1, discover_col2 = st.columns([1, 3], vertical_alignment="center")
+    with discover_col1:
+        discover_now = st.button("Discover", use_container_width=True)
+    with discover_col2:
+        st.caption("Generate 3-5 fresh ticker ideas from market-wide context and jump directly into analysis.")
+
+    if discover_now:
+        with st.spinner("Discovering stock ideas..."):
+            try:
+                seen_tickers = [
+                    str(t).strip().upper()
+                    for t in st.session_state.get("discovered_seen_tickers", [])
+                    if str(t).strip()
+                ]
+                st.session_state["discover_data"] = _request_discovery(api_url, max_age, seen_tickers)
+                st.session_state["discover_error"] = ""
+
+                new_suggestions = st.session_state["discover_data"].get("suggestions") or []
+                for suggestion in new_suggestions:
+                    ticker_symbol = str(suggestion.get("ticker") or "").strip().upper()
+                    if ticker_symbol and ticker_symbol not in st.session_state["discovered_seen_tickers"]:
+                        st.session_state["discovered_seen_tickers"].append(ticker_symbol)
+            except httpx.HTTPStatusError as exc:
+                st.session_state["discover_data"] = None
+                st.session_state["discover_error"] = f"API error ({exc.response.status_code}): {exc.response.text}"
+            except httpx.HTTPError as exc:
+                st.session_state["discover_data"] = None
+                st.session_state["discover_error"] = f"Connection error: {exc}"
+            except Exception as exc:
+                st.session_state["discover_data"] = None
+                st.session_state["discover_error"] = f"Unexpected error: {exc}"
+
+    discover_error = st.session_state.get("discover_error")
+    discover_data = st.session_state.get("discover_data")
+
+    if discover_error:
+        st.error(discover_error)
+    elif discover_data:
+        st.caption(
+            f"Discover model: `{discover_data.get('model', 'N/A')}` · "
+            f"Latency: `{discover_data.get('latency_ms', 0)}ms` · "
+            f"Fetched: `{str(discover_data.get('fetched_at', 'N/A'))[:19]}`"
+        )
+        summary = str(discover_data.get("summary") or "").strip()
+        if summary:
+            st.write(summary)
+
+        suggestions = discover_data.get("suggestions") or []
+        if not suggestions:
+            st.warning("No discovery suggestions available right now.")
+        else:
+            cards = st.columns(min(3, len(suggestions)))
+            for idx, item in enumerate(suggestions):
+                with cards[idx % len(cards)]:
+                    ticker_symbol = str(item.get("ticker") or "").strip().upper()
+                    company_name = str(item.get("company_name") or ticker_symbol)
+                    reason = str(item.get("reason") or "")
+                    try:
+                        confidence = float(item.get("confidence") or 0.0)
+                    except (TypeError, ValueError):
+                        confidence = 0.0
+
+                    st.markdown(
+                        f"""
+                        <div style="padding: 0.8rem; border-radius: 10px; border: 1px solid {COLORS['card_border']}; background: {COLORS['card']}; min-height: 170px; margin-bottom: 0.5rem;">
+                            <div style="font-size: 1rem; font-weight: 700; color: {COLORS['accent_blue']};">{escape(ticker_symbol)}</div>
+                            <div style="font-size: 0.85rem; color: {COLORS['text_muted']}; margin-bottom: 0.4rem;">{escape(company_name)}</div>
+                            <div style="font-size: 0.85rem; color: {COLORS['text']};">{escape(reason)}</div>
+                            <div style="margin-top: 0.5rem; font-size: 0.8rem; color: {COLORS['text_muted']};">Confidence: {confidence:.0%}</div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
+
+                    if ticker_symbol and st.button(
+                        f"Analyze {ticker_symbol}",
+                        key=f"discover-analyze-{ticker_symbol}-{idx}",
+                        use_container_width=True,
+                    ):
+                        st.session_state["analysis_ticker"] = ticker_symbol
+                        st.session_state["auto_run_analysis"] = True
+                        st.rerun()
+
     col_input, col_btn = st.columns([3, 1], vertical_alignment="bottom")
     with col_input:
-        default_ticker = selected_watchlist if selected_watchlist else "AAPL"
-        ticker = st.text_input("Enter Stock Ticker:", value=default_ticker, max_chars=12).strip().upper()
+        if selected_watchlist:
+            st.session_state["analysis_ticker"] = selected_watchlist
+        ticker = st.text_input("Enter Stock Ticker:", key="analysis_ticker", max_chars=12).strip().upper()
     with col_btn:
         run = st.button("🔍 Analyze", use_container_width=True, type="primary")
+
+    auto_run = bool(st.session_state.get("auto_run_analysis"))
+    if auto_run:
+        st.session_state["auto_run_analysis"] = False
 
     # --- Compare Mode ---
     if compare_btn and compare_input:
@@ -509,7 +623,7 @@ def main() -> None:
             return
 
     # --- Analysis Mode ---
-    if not run:
+    if not (run or auto_run):
         st.info("Enter a ticker and click **Analyze** to begin, or use the Quick Watchlist in the sidebar.")
         return
 

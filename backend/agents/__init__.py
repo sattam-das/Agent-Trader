@@ -1,10 +1,13 @@
 from .base_agent import (
+    DiscoveryAnalysis,
+    DiscoverySuggestion,
     FinancialAnalysis,
     MacroAnalysis,
     NewsAnalysis,
     RiskAnalysis,
     TechnicalAnalysis,
 )
+from .discovery_agent import DiscoveryAgent
 from .financial_agent import FinancialAgent
 from .macro_agent import MacroAgent
 from .news_agent import NewsAgent
@@ -17,9 +20,12 @@ __all__ = [
     "RiskAnalysis",
     "TechnicalAnalysis",
     "MacroAnalysis",
+    "DiscoverySuggestion",
+    "DiscoveryAnalysis",
     "NewsAgent",
     "FinancialAgent",
     "RiskAgent",
     "TechnicalAgent",
     "MacroAgent",
+    "DiscoveryAgent",
 ]

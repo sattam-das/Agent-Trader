@@ -7,6 +7,7 @@ All data sourced from yfinance (free, no key) and NewsAPI / Google News RSS.
 from __future__ import annotations
 
 import json
+import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
@@ -46,6 +47,29 @@ class DataFetcher:
             if use_cache and cached_payload:
                 return cached_payload
             raise
+
+    def get_market_news_context(
+        self,
+        use_cache: bool = True,
+        max_cache_age_hours: int | None = 6,
+    ) -> dict[str, Any]:
+        cached_payload = self._read_market_cache()
+        if use_cache and cached_payload and self._is_market_cache_fresh(cached_payload, max_cache_age_hours):
+            return cached_payload
+
+        try:
+            payload = self._fetch_market_news_context()
+            self._write_market_cache(payload)
+            return payload
+        except Exception:
+            if use_cache and cached_payload:
+                return cached_payload
+
+            return {
+                "fetched_at": datetime.now(timezone.utc).isoformat(),
+                "market_news": [],
+                "candidate_tickers": self._discover_cached_tickers(limit=40),
+            }
 
     # ------------------------------------------------------------------
     # Core live data fetching
@@ -166,7 +190,7 @@ class DataFetcher:
     def _fetch_google_news_rss(self, query: str) -> list[dict[str, Any]]:
         """Free Google News RSS — no API key, no rate limit."""
         try:
-            encoded_query = urllib.request.quote(query)
+            encoded_query = urllib.parse.quote(query)
             url = f"https://news.google.com/rss/search?q={encoded_query}&hl=en-US&gl=US&ceid=US:en"
             req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
             with urllib.request.urlopen(req, timeout=10) as resp:
@@ -194,6 +218,41 @@ class DataFetcher:
             return articles
         except Exception:
             return []
+
+    def _fetch_market_news_context(self) -> dict[str, Any]:
+        market_news: list[dict[str, Any]] = []
+
+        if self.newsapi is not None:
+            try:
+                seven_days_ago = datetime.now(timezone.utc) - timedelta(days=7)
+                response = self.newsapi.get_everything(
+                    q="stock market OR earnings OR guidance OR upgrade OR downgrade OR merger",
+                    from_param=seven_days_ago.strftime("%Y-%m-%d"),
+                    language="en",
+                    sort_by="publishedAt",
+                    page_size=25,
+                )
+                for article in response.get("articles", []):
+                    market_news.append(
+                        {
+                            "source": (article.get("source") or {}).get("name"),
+                            "title": article.get("title"),
+                            "description": article.get("description"),
+                            "url": article.get("url"),
+                            "published_at": article.get("publishedAt"),
+                        }
+                    )
+            except Exception:
+                market_news = []
+
+        if not market_news:
+            market_news = self._fetch_google_news_rss("stock market earnings guidance upgrades downgrades")
+
+        return {
+            "fetched_at": datetime.now(timezone.utc).isoformat(),
+            "market_news": market_news,
+            "candidate_tickers": self._discover_cached_tickers(limit=40),
+        }
 
     # ------------------------------------------------------------------
     # Insider trades
@@ -332,6 +391,9 @@ class DataFetcher:
     def _cache_file(self, ticker: str) -> Path:
         return self.cache_dir / f"{ticker}.json"
 
+    def _market_cache_file(self) -> Path:
+        return self.cache_dir / "MARKET_DISCOVERY.json"
+
     def _read_cache(self, ticker: str) -> dict[str, Any] | None:
         cache_file = self._cache_file(ticker)
         if not cache_file.exists():
@@ -348,8 +410,33 @@ class DataFetcher:
 
         return payload
 
+    def _read_market_cache(self) -> dict[str, Any] | None:
+        cache_file = self._market_cache_file()
+        if not cache_file.exists():
+            return None
+
+        try:
+            with cache_file.open("r", encoding="utf-8") as f:
+                payload = json.load(f)
+        except (OSError, json.JSONDecodeError):
+            return None
+
+        if not self._is_valid_market_payload(payload):
+            return None
+
+        return payload
+
     def _write_cache(self, ticker: str, payload: dict[str, Any]) -> None:
         cache_file = self._cache_file(ticker)
+        temp_file = cache_file.with_suffix(".tmp")
+
+        with temp_file.open("w", encoding="utf-8") as f:
+            json.dump(payload, f, indent=2, ensure_ascii=True)
+
+        temp_file.replace(cache_file)
+
+    def _write_market_cache(self, payload: dict[str, Any]) -> None:
+        cache_file = self._market_cache_file()
         temp_file = cache_file.with_suffix(".tmp")
 
         with temp_file.open("w", encoding="utf-8") as f:
@@ -376,6 +463,9 @@ class DataFetcher:
         age = datetime.now(timezone.utc) - fetched_at
         return age <= timedelta(hours=max_cache_age_hours)
 
+    def _is_market_cache_fresh(self, payload: dict[str, Any], max_cache_age_hours: int | None) -> bool:
+        return self._is_cache_fresh(payload, max_cache_age_hours)
+
     def _is_valid_payload(self, payload: Any) -> bool:
         if not isinstance(payload, dict):
             return False
@@ -399,6 +489,29 @@ class DataFetcher:
             return False
 
         return True
+
+    def _is_valid_market_payload(self, payload: Any) -> bool:
+        if not isinstance(payload, dict):
+            return False
+        if not isinstance(payload.get("fetched_at"), str):
+            return False
+        if not isinstance(payload.get("market_news"), list):
+            return False
+        if not isinstance(payload.get("candidate_tickers"), list):
+            return False
+        return True
+
+    def _discover_cached_tickers(self, limit: int = 40) -> list[str]:
+        ticker_symbols: list[str] = []
+        for file in self.cache_dir.glob("*.json"):
+            symbol = file.stem.strip().upper()
+            if not symbol or symbol == "MARKET_DISCOVERY":
+                continue
+            if symbol not in ticker_symbols:
+                ticker_symbols.append(symbol)
+            if len(ticker_symbols) >= limit:
+                break
+        return ticker_symbols
 
     def _to_primitive(self, value: Any) -> Any:
         if value is None:
