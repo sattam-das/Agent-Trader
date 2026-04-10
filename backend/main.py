@@ -472,6 +472,76 @@ async def screener_presets():
     return {k: len(v) for k, v in PRESET_TICKERS.items()}
 
 
+
+# --- Ticker Search / Autocomplete ---
+@app.get("/api/search")
+async def search_tickers(q: str = ""):
+    """Search for tickers by name or symbol.
+
+    Uses Yahoo Finance search API to return suggestions with
+    company name, exchange, and instrument type so users can
+    pick the correct ticker (e.g. TCS.NS vs TCS on other exchanges).
+    """
+    query = q.strip()
+    if len(query) < 1:
+        return {"query": query, "results": []}
+
+    import httpx
+
+    try:
+        url = "https://query1.finance.yahoo.com/v1/finance/search"
+        params = {
+            "q": query,
+            "lang": "en-US",
+            "region": "IN",
+            "quotesCount": 10,
+            "newsCount": 0,
+            "listsCount": 0,
+            "enableFuzzyQuery": True,
+            "quotesQueryId": "tss_match_phrase_query",
+        }
+        headers = {"User-Agent": "Mozilla/5.0"}
+
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(url, params=params, headers=headers, timeout=5)
+            data = resp.json()
+
+        quotes = data.get("quotes", [])
+        results = []
+        for q_item in quotes:
+            symbol = q_item.get("symbol", "")
+            name = q_item.get("shortname") or q_item.get("longname") or ""
+            exchange = q_item.get("exchDisp") or q_item.get("exchange") or ""
+            q_type = q_item.get("quoteType", "")
+
+            # Only include equities and ETFs
+            if q_type not in ("EQUITY", "ETF", "MUTUALFUND", "INDEX"):
+                continue
+
+            # Determine market flag
+            is_indian = symbol.endswith(".NS") or symbol.endswith(".BO")
+            flag = "🇮🇳" if is_indian else "🇺🇸" if exchange in ("NMS", "NYQ", "NGM", "PCX") else "🌐"
+
+            results.append({
+                "symbol": symbol,
+                "name": name,
+                "exchange": exchange,
+                "type": q_type,
+                "flag": flag,
+                "display": f"{symbol} — {name}" if name else symbol,
+            })
+
+        return {"query": q.strip(), "count": len(results), "results": results}
+
+    except Exception as exc:
+        # Fallback: return the raw query as a suggestion
+        return {
+            "query": q.strip(),
+            "count": 1,
+            "results": [{"symbol": q.strip().upper(), "name": "", "exchange": "", "type": "EQUITY", "flag": "🌐", "display": q.strip().upper()}],
+        }
+
+
 # --- Quote ---
 @app.get("/api/quote/{ticker}")
 async def get_quote(ticker: str):
