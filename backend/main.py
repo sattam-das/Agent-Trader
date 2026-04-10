@@ -34,6 +34,7 @@ class AnalyzeResponse(BaseModel):
     model: str
     latency_ms: int
     result: OrchestrationResult
+    historical_prices: dict[str, float] = Field(default_factory=dict)
 
 
 class HealthResponse(BaseModel):
@@ -101,4 +102,5 @@ async def analyze_stock(request: AnalyzeRequest) -> AnalyzeResponse:
         model=news_agent.model,
         latency_ms=latency_ms,
         result=orchestration,
+        historical_prices=stock_payload.get("historical_prices", {}),
     )

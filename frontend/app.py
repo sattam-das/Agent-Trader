@@ -150,6 +150,14 @@ def main() -> None:
         for item in rationale:
             st.write(f"- {item}")
 
+    historical_prices = data.get("historical_prices", {})
+    if historical_prices:
+        st.subheader("Price History (3 Months)")
+        import pandas as pd
+        df = pd.DataFrame(list(historical_prices.items()), columns=["Date", "Price"])
+        df.set_index("Date", inplace=True)
+        st.line_chart(df)
+
     st.subheader("Agent Output Details")
     _render_analysis_section("News Analysis", result.get("news_analysis") or {})
     _render_analysis_section("Financial Analysis", result.get("financial_analysis") or {})

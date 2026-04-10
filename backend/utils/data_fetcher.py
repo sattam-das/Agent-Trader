@@ -52,10 +52,16 @@ class DataFetcher:
 
         news_articles = self._fetch_news(company_name)
 
+        historical_prices = {}
+        if history is not None and not history.empty and "Close" in history:
+            for date, price in history["Close"].items():
+                historical_prices[date.strftime("%Y-%m-%d")] = float(price)
+
         payload = {
             "ticker": ticker,
             "company_name": str(company_name),
             "fetched_at": datetime.now(timezone.utc).isoformat(),
+            "historical_prices": historical_prices,
             "financials": {
                 "pe_ratio": self._to_primitive(info.get("trailingPE")),
                 "revenue_growth": self._to_primitive(info.get("revenueGrowth")),
@@ -170,6 +176,7 @@ class DataFetcher:
             "financials",
             "risk_data",
             "news",
+            "historical_prices",
         }
         if not required_keys.issubset(payload.keys()):
             return False
