@@ -700,3 +700,99 @@ async def add_portfolio(data: dict):
 @app.delete("/api/portfolio/{holding_id}")
 async def remove_portfolio(holding_id: int):
     return db.portfolio_remove(holding_id)
+
+
+# ==================================================================
+# INTELLIGENCE HUB — Calendar, Heatmap, Sentiment, Risk, Market Pulse
+# ==================================================================
+
+from backend.intelligence.calendar import EconomicCalendar
+from backend.intelligence.heatmap import SectorHeatmap
+from backend.intelligence.sentiment import SentimentScanner
+from backend.intelligence.risk_calc import PositionSizer
+from backend.intelligence.market_pulse import MarketPulse
+
+
+# --- Economic Calendar ---
+@app.get("/api/calendar")
+async def get_calendar(
+    days: int = 30,
+    country: Optional[str] = None,
+    impact: Optional[str] = None,
+):
+    """Get upcoming economic events."""
+    events = EconomicCalendar.get_events(days=days, country=country, impact=impact)
+    return {
+        "days": days,
+        "country": country,
+        "impact": impact,
+        "count": len(events),
+        "events": events,
+    }
+
+
+# --- Sector Heatmap ---
+@app.get("/api/heatmap")
+async def get_heatmap(market: str = "india"):
+    """Get sector performance heatmap."""
+    result = await asyncio.to_thread(SectorHeatmap.get_heatmap, market)
+    return result
+
+
+# --- Sentiment Scanner ---
+@app.get("/api/sentiment/{ticker}")
+async def get_sentiment(ticker: str):
+    """Get Reddit + news sentiment for a ticker."""
+    result = await SentimentScanner.scan(ticker.strip().upper())
+    return result
+
+
+# --- Position Size Calculator ---
+class PositionSizeRequest(BaseModel):
+    account_size: float
+    risk_pct: float = 1.0
+    entry_price: float
+    stop_loss: float
+    target_price: Optional[float] = None
+    commission_rate: Optional[float] = None
+
+
+@app.post("/api/position-size")
+async def calc_position_size(req: PositionSizeRequest):
+    """Calculate optimal position size based on risk."""
+    try:
+        result = PositionSizer.calculate(
+            account_size=req.account_size,
+            risk_pct=req.risk_pct,
+            entry_price=req.entry_price,
+            stop_loss=req.stop_loss,
+            target_price=req.target_price,
+            commission_rate=req.commission_rate,
+        )
+        return result.to_dict()
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+
+
+@app.post("/api/position-size/compare")
+async def compare_position_sizes(req: PositionSizeRequest):
+    """Compare position sizes at multiple risk levels (0.5% to 5%)."""
+    results = PositionSizer.multi_risk(
+        account_size=req.account_size,
+        entry_price=req.entry_price,
+        stop_loss=req.stop_loss,
+        target_price=req.target_price,
+    )
+    return {"levels": results}
+
+
+# --- Market Pulse ---
+@app.get("/api/market-pulse")
+async def get_market_pulse(categories: Optional[str] = None):
+    """Get categorized market news feed.
+
+    categories: comma-separated list (e.g. "india_market,breaking,earnings")
+    """
+    cat_list = categories.split(",") if categories else None
+    result = await MarketPulse.fetch(cat_list)
+    return result
