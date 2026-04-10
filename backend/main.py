@@ -1,18 +1,23 @@
-"""AgentTrader FastAPI Backend — 5-agent parallel analysis with
-technical indicators, Monte Carlo simulation, and multi-stock comparison.
+"""AgentTrader v3 FastAPI Backend — Full trading environment with
+5-agent AI analysis, backtesting, screener, trade journal, portfolio,
+live news, and WebSocket price streaming.
 """
 
 from __future__ import annotations
 
 import asyncio
 import os
+from pathlib import Path
 from time import perf_counter
 from typing import Any, Optional
 
 import pandas as pd
+import yfinance as yf
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field
 
 from backend.agents import (
@@ -29,7 +34,12 @@ from backend.utils.technical_indicators import TechnicalIndicators
 
 load_dotenv()
 
-app = FastAPI(title="AgentTrader API", version="2.0.0")
+app = FastAPI(title="AgentTrader API", version="3.0.0")
+
+# Serve static frontend files
+_FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend" / "static"
+if _FRONTEND_DIR.exists():
+    app.mount("/static", StaticFiles(directory=str(_FRONTEND_DIR)), name="static")
 
 app.add_middleware(
     CORSMiddleware,
@@ -180,9 +190,20 @@ def _run_simulation(
 # ------------------------------------------------------------------
 # Endpoints
 # ------------------------------------------------------------------
+# ------------------------------------------------------------------
+# Frontend route — serves the trading terminal
+# ------------------------------------------------------------------
+@app.get("/", response_class=FileResponse)
+async def serve_frontend():
+    index = _FRONTEND_DIR / "index.html"
+    if index.exists():
+        return FileResponse(str(index))
+    raise HTTPException(status_code=404, detail="Frontend not found")
+
+
 @app.get("/health", response_model=HealthResponse)
 async def health() -> HealthResponse:
-    return HealthResponse(status="ok", version="2.0.0")
+    return HealthResponse(status="ok", version="3.0.0")
 
 
 @app.post("/analyze", response_model=AnalyzeResponse)
@@ -355,3 +376,257 @@ async def compare_stocks(request: CompareRequest) -> CompareResponse:
 
     latency_ms = int((perf_counter() - start) * 1000)
     return CompareResponse(items=list(items), latency_ms=latency_ms)
+
+
+# ==================================================================
+# NEW v3 ENDPOINTS — Backtest, Screener, Watchlist, Journal, etc.
+# ==================================================================
+
+from backend.engine.backtester import Backtester
+from backend.engine.strategies import (
+    SMACrossover,
+    RSIReversal,
+    MACDMomentum,
+    BollingerBreakout,
+    MultiIndicator,
+)
+from backend.engine.screener import Screener, PRESET_TICKERS
+from backend import db
+
+_STRATEGY_MAP = {
+    "sma_crossover": SMACrossover,
+    "rsi_reversal": RSIReversal,
+    "macd_momentum": MACDMomentum,
+    "bollinger_breakout": BollingerBreakout,
+    "multi_indicator": MultiIndicator,
+}
+
+
+# --- Backtest ---
+class BacktestRequest(BaseModel):
+    ticker: str
+    strategy: str = "sma_crossover"
+    period: str = "2y"
+    initial_capital: float = 100000
+    params: Optional[dict[str, Any]] = None
+
+
+@app.post("/api/backtest")
+async def run_backtest(req: BacktestRequest):
+    strategy_cls = _STRATEGY_MAP.get(req.strategy)
+    if not strategy_cls:
+        raise HTTPException(400, f"Unknown strategy: {req.strategy}. Available: {list(_STRATEGY_MAP.keys())}")
+
+    ticker = req.ticker.strip().upper()
+
+    # Download data
+    try:
+        hist = await asyncio.to_thread(
+            yf.download, ticker, period=req.period, progress=False, auto_adjust=True
+        )
+    except Exception as exc:
+        raise HTTPException(503, f"Failed to fetch data: {exc}") from exc
+
+    if hist.empty:
+        raise HTTPException(400, f"No data found for {ticker}")
+
+    # Flatten MultiIndex columns if present
+    if isinstance(hist.columns, pd.MultiIndex):
+        hist.columns = [col[0] if isinstance(col, tuple) else col for col in hist.columns]
+
+    strategy = strategy_cls(**(req.params or {}))
+    bt = Backtester(initial_capital=req.initial_capital)
+    result = await asyncio.to_thread(bt.run, strategy, hist, ticker)
+    return result.to_dict()
+
+
+@app.get("/api/strategies")
+async def list_strategies():
+    return [
+        {
+            "id": k,
+            "name": cls().name,
+            "description": cls().description,
+            "default_params": cls().get_params(),
+        }
+        for k, cls in _STRATEGY_MAP.items()
+    ]
+
+
+# --- Screener ---
+@app.get("/api/screener")
+async def run_screener(
+    preset: str = "nifty50",
+    filter: str = "rsi_oversold",
+):
+    tickers = PRESET_TICKERS.get(preset)
+    if not tickers:
+        raise HTTPException(400, f"Unknown preset: {preset}. Available: {list(PRESET_TICKERS.keys())}")
+
+    results = await asyncio.to_thread(Screener.scan, tickers, filter)
+    return {"preset": preset, "filter": filter, "count": len(results), "results": results}
+
+
+@app.get("/api/screener/presets")
+async def screener_presets():
+    return {k: len(v) for k, v in PRESET_TICKERS.items()}
+
+
+# --- Quote ---
+@app.get("/api/quote/{ticker}")
+async def get_quote(ticker: str):
+    symbol = ticker.strip().upper()
+    try:
+        stock = yf.Ticker(symbol)
+        info = await asyncio.to_thread(lambda: stock.fast_info)
+        price = getattr(info, 'last_price', None)
+        prev = getattr(info, 'previous_close', None)
+        change_pct = ((price - prev) / prev * 100) if price and prev else 0.0
+        return {
+            "ticker": symbol,
+            "price": round(float(price), 2) if price else None,
+            "previous_close": round(float(prev), 2) if prev else None,
+            "change_pct": round(change_pct, 2),
+        }
+    except Exception as exc:
+        return {"ticker": symbol, "price": None, "error": str(exc)}
+
+
+# --- Indicators (new path for frontend) ---
+@app.get("/api/indicators/{ticker}")
+async def get_indicators_v3(ticker: str):
+    symbol = ticker.strip().upper()
+    fetcher = _get_fetcher()
+
+    try:
+        stock_payload = await asyncio.to_thread(fetcher.get_stock_data, symbol, True, None)
+    except Exception as exc:
+        raise HTTPException(503, str(exc)) from exc
+
+    price_history = stock_payload.get("price_history", [])
+    indicators = _compute_indicators(price_history)
+
+    return {
+        "ticker": symbol,
+        "indicators": indicators,
+        "price_history": price_history,
+    }
+
+
+# --- News ---
+@app.get("/api/news/{ticker}")
+async def get_news(ticker: str):
+    """Get live news for a ticker via Google News RSS."""
+    import httpx
+    from xml.etree import ElementTree
+
+    symbol = ticker.strip().upper()
+    search = symbol.replace('.NS', '').replace('.BO', '')
+
+    articles = []
+    try:
+        url = f"https://news.google.com/rss/search?q={search}+stock&hl=en-IN&gl=IN&ceid=IN:en"
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(url, timeout=10)
+            root = ElementTree.fromstring(resp.text)
+
+            for item in root.findall(".//item")[:20]:
+                title = item.findtext("title", "")
+                link = item.findtext("link", "")
+                pub_date = item.findtext("pubDate", "")
+                source = item.findtext("source", "News")
+
+                # Simple keyword sentiment
+                t_lower = title.lower()
+                sentiment = "neutral"
+                pos_words = ["surge", "jump", "rise", "gain", "bull", "high", "up", "rally", "profit", "growth", "buy", "positive"]
+                neg_words = ["fall", "drop", "crash", "bear", "low", "down", "loss", "sell", "negative", "decline", "cut"]
+                if any(w in t_lower for w in pos_words):
+                    sentiment = "positive"
+                elif any(w in t_lower for w in neg_words):
+                    sentiment = "negative"
+
+                articles.append({
+                    "title": title,
+                    "url": link,
+                    "source": source,
+                    "time": pub_date[:22] if pub_date else "",
+                    "sentiment": sentiment,
+                })
+    except Exception:
+        pass
+
+    return {"ticker": symbol, "count": len(articles), "articles": articles}
+
+
+# --- Watchlist ---
+@app.get("/api/watchlist")
+async def get_watchlist():
+    return db.watchlist_list()
+
+
+@app.post("/api/watchlist")
+async def add_watchlist(data: dict):
+    ticker = data.get("ticker", "").strip().upper()
+    if not ticker:
+        raise HTTPException(400, "ticker required")
+    return db.watchlist_add(ticker, data.get("notes", ""))
+
+
+@app.delete("/api/watchlist/{ticker}")
+async def remove_watchlist(ticker: str):
+    return db.watchlist_remove(ticker.upper())
+
+
+# --- Journal ---
+@app.get("/api/journal")
+async def get_journal(status: Optional[str] = None):
+    return db.journal_list(status)
+
+
+@app.post("/api/journal")
+async def add_journal(data: dict):
+    return db.journal_add(
+        ticker=data["ticker"],
+        side=data["side"],
+        entry_price=data["entry_price"],
+        shares=data["shares"],
+        entry_date=data["entry_date"],
+        notes=data.get("notes", ""),
+    )
+
+
+@app.post("/api/journal/{trade_id}/close")
+async def close_journal(trade_id: int, data: dict):
+    return db.journal_close(trade_id, data["exit_price"], data["exit_date"])
+
+
+@app.delete("/api/journal/{trade_id}")
+async def delete_journal(trade_id: int):
+    return db.journal_delete(trade_id)
+
+
+@app.get("/api/journal/stats")
+async def journal_stats():
+    return db.journal_stats()
+
+
+# --- Portfolio ---
+@app.get("/api/portfolio")
+async def get_portfolio():
+    return db.portfolio_list()
+
+
+@app.post("/api/portfolio")
+async def add_portfolio(data: dict):
+    return db.portfolio_add(
+        ticker=data["ticker"],
+        shares=data["shares"],
+        avg_price=data["avg_price"],
+        notes=data.get("notes", ""),
+    )
+
+
+@app.delete("/api/portfolio/{holding_id}")
+async def remove_portfolio(holding_id: int):
+    return db.portfolio_remove(holding_id)

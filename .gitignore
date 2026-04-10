@@ -1,4 +1,4 @@
-# AgentTrader v2
+# AgentTrader v3
 __pycache__/
 *.py[cod]
 *$py.class
@@ -8,6 +8,7 @@ venv/
 .venv/
 data/cache/*.json
 data/cache/*.tmp
+data/*.db
 *.egg-info/
 dist/
 build/
