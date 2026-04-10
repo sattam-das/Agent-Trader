@@ -747,3 +747,234 @@ frontend/
 - **Performance** — charts must render <500ms after data arrives
 - **Accessibility** — all interactive elements need unique IDs
 - **SEO** — not needed (local app), but proper `<title>` tag
+
+---
+
+## 11. Intelligence Hub APIs (NEW — v3.1)
+
+### 11.1 Ticker Search / Autocomplete
+
+#### `GET /api/search?q={query}`
+Returns suggestions with company name, exchange, and country flag. Use this for the search bar autocomplete (shadcn `Command` / `Combobox`).
+```
+Request:  GET /api/search?q=TCS
+Response: {
+  "query": "TCS",
+  "count": 7,
+  "results": [
+    { "symbol": "TCS.NS", "name": "TATA CONSULTANCY SERV LT", "exchange": "NSE", "type": "EQUITY", "flag": "🇮🇳", "display": "TCS.NS — TATA CONSULTANCY SERV LT" },
+    { "symbol": "TCS.BO", "name": "TATA CONSULTANCY SERVICES LTD.", "exchange": "Bombay", "type": "EQUITY", "flag": "🇮🇳", "display": "TCS.BO — TATA CONSULTANCY SERVICES LTD." },
+    { "symbol": "TCS.TO", "name": "TECSYS INC", "exchange": "Toronto", "type": "EQUITY", "flag": "🌐", "display": "TCS.TO — TECSYS INC" }
+  ]
+}
+```
+
+### 11.2 Economic Calendar
+
+#### `GET /api/calendar?days=30&country=IN&impact=HIGH`
+Upcoming economic events with impact levels. All parameters optional.
+```
+Response: {
+  "days": 30,
+  "count": 12,
+  "events": [
+    {
+      "date": "2026-04-12",
+      "day_of_week": "Sunday",
+      "event": "India CPI Inflation Data",
+      "country": "IN",
+      "impact": "HIGH",
+      "category": "inflation",
+      "time_label": "In 2 days",
+      "days_away": 2
+    }
+  ]
+}
+```
+**Countries:** `IN`, `US`, `EU`, `JP`, `CN`
+**Impact:** `HIGH` (red), `MEDIUM` (amber), `LOW` (green)
+**Categories:** `interest_rate`, `inflation`, `employment`, `gdp`, `consumer`, `manufacturing`, `services`, `trade`, `earnings`
+
+### 11.3 Sector Heatmap
+
+#### `GET /api/heatmap?market=india`
+Live sector performance with per-stock breakdown. **Takes 15-30s** (bulk price fetch).
+```
+Response: {
+  "market": "india",
+  "market_mood": "strong_bullish",
+  "avg_change_pct": 1.03,
+  "sector_count": 10,
+  "sectors": [
+    {
+      "name": "Auto",
+      "change_pct": 2.60,
+      "stock_count": 4,
+      "leaders": [
+        { "ticker": "HEROMOTOCO.NS", "name": "HEROMOTOCO", "price": 5466.50, "change_pct": 3.45 },
+        { "ticker": "BAJAJ-AUTO.NS", "name": "BAJAJ-AUTO", "price": 9813.50, "change_pct": 3.12 }
+      ]
+    }
+  ]
+}
+```
+**Markets:** `india` (10 sectors × 5 stocks each), `us` (6 sectors × 5 stocks)
+**Mood values:** `strong_bullish`, `bullish`, `neutral`, `bearish`, `strong_bearish`
+
+> **UI suggestion:** Render as a treemap or grid of colored cards. Green for positive sectors, red for negative.
+
+### 11.4 Sentiment Scanner
+
+#### `GET /api/sentiment/{ticker}`
+Reddit sentiment analysis. Scans r/IndianStreetBets, r/wallstreetbets, r/stocks.
+```
+Response: {
+  "ticker": "RELIANCE.NS",
+  "market": "india",
+  "reddit": {
+    "mentions": 5,
+    "sentiment_score": 0.3,
+    "sentiment": "bearish",
+    "positive_count": 1,
+    "negative_count": 3,
+    "neutral_count": 1,
+    "top_posts": [
+      {
+        "title": "Reliance Q4 results look strong",
+        "url": "https://reddit.com/...",
+        "subreddit": "IndianStreetBets",
+        "sentiment": "positive",
+        "updated": "2026-04-09T12:30:00"
+      }
+    ],
+    "subreddits_scanned": 3
+  },
+  "summary": "RELIANCE.NS: 5 Reddit mentions. Sentiment is bearish (30%). 1 positive, 3 negative, 1 neutral."
+}
+```
+**Sentiment values:** `bullish`, `slightly_bullish`, `neutral`, `slightly_bearish`, `bearish`, `no_data`
+**Score:** 0.0 (extreme bear) → 1.0 (extreme bull)
+
+### 11.5 Position Size Calculator
+
+#### `POST /api/position-size`
+Risk-based position sizing. Pure math, instant response.
+```
+Request: {
+  "account_size": 500000,
+  "risk_pct": 1.0,
+  "entry_price": 1350.0,
+  "stop_loss": 1300.0,
+  "target_price": 1450.0
+}
+
+Response: {
+  "shares": 100,
+  "risk_amount": 5000.0,
+  "position_value": 135000.0,
+  "position_pct_of_account": 27.0,
+  "stop_distance": 50.0,
+  "stop_distance_pct": 3.7,
+  "max_loss": 5000.0,
+  "target_profit": 9919.0,
+  "reward_risk_ratio": 2.0,
+  "commission_per_side": 40.5,
+  "total_commission": 81.0,
+  "breakeven_price": 1350.81,
+  "summary": "LONG 100 shares at 1350.00. Risking 1.0% (₹5000) with stop at 1300.00 (3.7% away). Position is 27.0% of account. R:R = 2.0:1."
+}
+```
+
+#### `POST /api/position-size/compare`
+Same request body → returns sizing for 0.5%, 1%, 1.5%, 2%, 3%, 5% risk levels.
+```
+Response: {
+  "levels": [
+    { "risk_pct": 0.5, "shares": 50, "position_value": 67500, ... },
+    { "risk_pct": 1.0, "shares": 100, "position_value": 135000, ... },
+    ...
+  ]
+}
+```
+
+### 11.6 Market Pulse
+
+#### `GET /api/market-pulse?categories=india_market,breaking`
+Categorized market-wide news. Categories parameter is optional (defaults to all).
+```
+Response: {
+  "total_articles": 40,
+  "market_mood": "cautiously_bullish",
+  "fear_greed_estimate": 57,
+  "sentiment_breakdown": { "positive": 15, "negative": 10, "neutral": 15 },
+  "categories": {
+    "india_market": {
+      "label": "🇮🇳 India Market",
+      "count": 8,
+      "articles": [
+        { "title": "Sensex surges 919 pts...", "source": "ET", "sentiment": "positive", "url": "...", "time": "..." }
+      ]
+    },
+    "breaking": { "label": "⚡ Breaking", "count": 5, "articles": [...] },
+    "global_market": { "label": "🌐 Global Markets", ... },
+    "earnings": { "label": "💰 Earnings", ... },
+    "crypto": { "label": "₿ Crypto", ... },
+    "rbi_fed": { "label": "🏦 Central Banks", ... },
+    "ipos": { "label": "🔔 IPOs & Listings", ... }
+  }
+}
+```
+**Categories:** `india_market`, `global_market`, `breaking`, `earnings`, `crypto`, `rbi_fed`, `ipos`
+
+---
+
+## 12. New Module UI Specs (v3.1)
+
+### 12.1 📅 Calendar Page
+
+**Components:**
+| Component | Description |
+|-----------|-------------|
+| FilterBar | Country toggle (🇮🇳 India / 🇺🇸 US / All) + Impact filter (HIGH / ALL) + Days slider (7/14/30) |
+| EventList | Chronological list. Each event: date, event name, country flag, impact badge (red/amber/green), category tag, "In X days" label |
+| TodayHighlight | Events happening today get a pulsing dot indicator |
+
+### 12.2 🗺️ Heatmap Page
+
+**Components:**
+| Component | Description |
+|-----------|-------------|
+| MarketToggle | India / US toggle |
+| MoodBanner | "Market Mood: 🟢 Strong Bullish (+1.03%)" banner at top |
+| SectorGrid | Grid of sector cards. Each card: sector name, change %, colored bg (green gradient for positive, red for negative). Click to expand → shows leader stocks |
+| StockRow | Within expanded sector: ticker, price, change % badge |
+
+### 12.3 📊 Sentiment Page
+
+**Components:**
+| Component | Description |
+|-----------|-------------|
+| SentimentHeader | Ticker + sentiment gauge (0-100 scale, colored arc) |
+| Stats | Mentions count, +positive / -negative / ~neutral counts |
+| PostList | Reddit posts with sentiment badge, subreddit tag, title (clickable → reddit) |
+| SummaryCard | AI-generated one-line summary |
+
+### 12.4 🧮 Position Sizer Page
+
+**Components:**
+| Component | Description |
+|-----------|-------------|
+| InputForm | 4 fields: Account Size (₹), Risk % (slider 0.5-5), Entry Price, Stop Loss. Optional: Target Price. Calculate button |
+| ResultCards | 6 metric cards: Shares, Position Value, Max Loss, R:R Ratio, Breakeven, Commission |
+| ComparisonTable | Auto-generated table showing sizing at 0.5%, 1%, 2%, 3%, 5% risk (from `/api/position-size/compare`) |
+| SummaryText | The `summary` string from the API displayed as a callout |
+
+### 12.5 📡 Market Pulse Page
+
+**Components:**
+| Component | Description |
+|-----------|-------------|
+| MoodBanner | "Market Mood: Cautiously Bullish · Fear/Greed: 57" with colored indicator |
+| CategoryTabs | Horizontal tabs for each news category (India, Global, Breaking, Earnings, Crypto, Central Banks, IPOs) |
+| NewsList | Vertical scrolling list of news cards with sentiment badges |
+| SentimentBar | Horizontal stacked bar: green (positive) / amber (neutral) / red (negative) proportions |
