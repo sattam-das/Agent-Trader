@@ -16,8 +16,7 @@ import yfinance as yf
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
-from fastapi.staticfiles import StaticFiles
+
 from pydantic import BaseModel, ConfigDict, Field
 
 from backend.agents import (
@@ -36,10 +35,7 @@ load_dotenv()
 
 app = FastAPI(title="AgentTrader API", version="3.0.0")
 
-# Serve static frontend files
-_FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend" / "static"
-if _FRONTEND_DIR.exists():
-    app.mount("/static", StaticFiles(directory=str(_FRONTEND_DIR)), name="static")
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -190,15 +186,6 @@ def _run_simulation(
 # ------------------------------------------------------------------
 # Endpoints
 # ------------------------------------------------------------------
-# ------------------------------------------------------------------
-# Frontend route — serves the trading terminal
-# ------------------------------------------------------------------
-@app.get("/", response_class=FileResponse)
-async def serve_frontend():
-    index = _FRONTEND_DIR / "index.html"
-    if index.exists():
-        return FileResponse(str(index))
-    raise HTTPException(status_code=404, detail="Frontend not found")
 
 
 @app.get("/health", response_model=HealthResponse)
