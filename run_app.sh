@@ -8,8 +8,7 @@ echo ""
 
 # Check for .env
 if [ ! -f .env ]; then
-    echo "⚠️  No .env file found. Copy .env.example to .env and add your API keys."
-    echo "   cp .env.example .env"
+    echo "⚠️  No .env file found. Create a .env file and add your API keys."
     exit 1
 fi
 
@@ -25,9 +24,15 @@ fi
 # Activate venv
 source venv/bin/activate
 
-# Install deps
-echo "📦 Installing dependencies..."
+# Install Python deps
+echo "📦 Installing Python dependencies..."
 pip install -r requirements.txt --quiet
+
+# Install frontend deps if needed
+if [ ! -d "next-frontend/node_modules" ]; then
+    echo "📦 Installing frontend dependencies..."
+    (cd next-frontend && npm install)
+fi
 
 echo ""
 echo "🚀 Starting Backend API on port 8000..."
