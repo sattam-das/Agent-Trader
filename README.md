@@ -181,7 +181,3 @@ AgentTrader/
 - **Swarnavo Bagchi** — [bagchiswarna7-ux](https://github.com/bagchiswarna7-ux)
 
 ---
-
-## 📄 License
-
-This project is licensed under the MIT License.
