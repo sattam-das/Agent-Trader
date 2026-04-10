@@ -841,3 +841,98 @@ async def get_market_pulse(categories: Optional[str] = None):
     cat_list = categories.split(",") if categories else None
     result = await MarketPulse.fetch(cat_list)
     return result
+
+
+# ==================================================================
+# NATURAL LANGUAGE BACKTESTING — The Innovation
+# ==================================================================
+
+from backend.engine.nl_parser import NLParser
+from backend.engine.strategies.dynamic_strategy import DynamicStrategy
+
+
+class NLBacktestRequest(BaseModel):
+    prompt: str
+    ticker: str = "RELIANCE.NS"
+    period: str = "2y"
+    initial_capital: float = 100000
+
+
+@app.post("/api/nl-backtest")
+async def nl_backtest(req: NLBacktestRequest):
+    """Natural Language Backtesting — describe a strategy in English, get backtest results.
+
+    Example prompts:
+    - "Buy when RSI drops below 30, sell when it goes above 70"
+    - "Golden cross strategy with 50 and 200 day SMA"
+    - "Buy the dip using Bollinger Bands"
+    - "MACD crossover with RSI confirmation below 50"
+    """
+    from time import perf_counter
+
+    t0 = perf_counter()
+
+    # Step 1: Parse English → structured strategy spec
+    try:
+        parser = NLParser()
+    except ValueError as exc:
+        raise HTTPException(500, f"LLM configuration error: {exc}") from exc
+
+    spec = await parser.parse(req.prompt)
+
+    if "error" in spec:
+        raise HTTPException(
+            400,
+            {
+                "error": spec["error"],
+                "hint": "Try being more specific. Example: 'Buy when RSI goes below 30 and MACD crosses up. Sell when RSI goes above 70.'",
+            },
+        )
+
+    parse_time = perf_counter() - t0
+
+    # Step 2: Create DynamicStrategy from parsed spec
+    strategy = DynamicStrategy(spec)
+
+    # Step 3: Download historical data
+    period_map = {"1y": "1y", "2y": "2y", "5y": "5y", "max": "max"}
+    yf_period = period_map.get(req.period, "2y")
+
+    df = await asyncio.to_thread(
+        lambda: yf.download(req.ticker, period=yf_period, progress=False, auto_adjust=True)
+    )
+
+    if df.empty:
+        raise HTTPException(404, f"No data found for {req.ticker}")
+
+    # Flatten MultiIndex columns if present
+    if isinstance(df.columns, pd.MultiIndex):
+        df.columns = [col[0] if isinstance(col, tuple) else col for col in df.columns]
+
+    # Step 4: Run through existing backtester (unchanged)
+    from backend.engine.backtester import Backtester
+
+    backtester = Backtester(initial_capital=req.initial_capital)
+    result = backtester.run(strategy, df, ticker=req.ticker)
+
+    total_time = perf_counter() - t0
+
+    # Step 5: Return results + parsed spec (transparency)
+    response = result.to_dict()
+    response["parsed_strategy"] = {
+        "strategy_name": spec.get("strategy_name"),
+        "description": spec.get("description"),
+        "buy_conditions": spec.get("buy_conditions"),
+        "buy_logic": spec.get("buy_logic"),
+        "sell_conditions": spec.get("sell_conditions"),
+        "sell_logic": spec.get("sell_logic"),
+        "parameters_used": spec.get("parameters_used"),
+        "original_prompt": req.prompt,
+    }
+    response["timing"] = {
+        "llm_parse_seconds": round(parse_time, 2),
+        "total_seconds": round(total_time, 2),
+    }
+    response["innovation"] = "natural_language_backtesting"
+
+    return response
