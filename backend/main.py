@@ -7,18 +7,19 @@ from __future__ import annotations
 
 import asyncio
 import os
-from pathlib import Path
 from time import perf_counter
 from typing import Any, Optional
 
 import pandas as pd
 import yfinance as yf
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, ConfigDict, Field
 
 from backend.agents import (
+    DiscoveryAgent,
+    DiscoverySuggestion,
     FinancialAgent,
     MacroAgent,
     NewsAgent,
@@ -32,25 +33,15 @@ from backend.utils.technical_indicators import TechnicalIndicators
 
 load_dotenv()
 
-app = FastAPI(title="AgentTrader API", version="3.0.0")
+app = FastAPI(title="AgentTrader API", version="3.1.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 
 # ------------------------------------------------------------------
 # Request / Response Models
@@ -130,6 +121,16 @@ class HealthResponse(BaseModel):
     version: str
 
 
+class DiscoverResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    fetched_at: str
+    model: str
+    latency_ms: int
+    summary: str
+    suggestions: list[DiscoverySuggestion]
+
+
 # ------------------------------------------------------------------
 # Helpers
 # ------------------------------------------------------------------
@@ -145,6 +146,14 @@ def _build_agents() -> tuple[NewsAgent, FinancialAgent, RiskAgent, TechnicalAgen
         TechnicalAgent(api_key=gemini_key),
         MacroAgent(api_key=gemini_key),
     )
+
+
+def _build_discovery_agent() -> DiscoveryAgent:
+    groq_key = os.getenv("GROQ_API_KEY")
+    if not groq_key:
+        raise HTTPException(status_code=500, detail="Missing GROQ_API_KEY")
+
+    return DiscoveryAgent(api_key=groq_key)
 
 
 def _get_fetcher() -> DataFetcher:
@@ -198,6 +207,47 @@ def _run_simulation(
 @app.get("/health", response_model=HealthResponse)
 async def health() -> HealthResponse:
     return HealthResponse(status="ok", version="3.0.0")
+
+
+@app.get("/discover", response_model=DiscoverResponse)
+async def discover_stocks(
+    use_cache: bool = True,
+    max_cache_age_hours: int | None = Query(default=6, ge=1),
+    exclude_tickers: list[str] | None = Query(default=None),
+) -> DiscoverResponse:
+    fetcher = _get_fetcher()
+    discovery_agent = _build_discovery_agent()
+    start = perf_counter()
+
+    try:
+        market_context = await asyncio.to_thread(
+            fetcher.get_market_news_context,
+            use_cache,
+            max_cache_age_hours,
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"Failed to fetch market discovery context: {exc}") from exc
+
+    try:
+        discovery_result = await discovery_agent.analyze(
+            market_context,
+            exclude_tickers=exclude_tickers or [],
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Discovery agent failed: {exc}") from exc
+
+    if not discovery_result.suggestions:
+        raise HTTPException(status_code=404, detail="No discovery suggestions available right now.")
+
+    latency_ms = int((perf_counter() - start) * 1000)
+
+    return DiscoverResponse(
+        fetched_at=str(market_context.get("fetched_at") or ""),
+        model=discovery_agent.model,
+        latency_ms=latency_ms,
+        summary=discovery_result.summary,
+        suggestions=discovery_result.suggestions,
+    )
 
 
 @app.post("/analyze", response_model=AnalyzeResponse)
@@ -791,3 +841,98 @@ async def get_market_pulse(categories: Optional[str] = None):
     cat_list = categories.split(",") if categories else None
     result = await MarketPulse.fetch(cat_list)
     return result
+
+
+# ==================================================================
+# NATURAL LANGUAGE BACKTESTING — The Innovation
+# ==================================================================
+
+from backend.engine.nl_parser import NLParser
+from backend.engine.strategies.dynamic_strategy import DynamicStrategy
+
+
+class NLBacktestRequest(BaseModel):
+    prompt: str
+    ticker: str = "RELIANCE.NS"
+    period: str = "2y"
+    initial_capital: float = 100000
+
+
+@app.post("/api/nl-backtest")
+async def nl_backtest(req: NLBacktestRequest):
+    """Natural Language Backtesting — describe a strategy in English, get backtest results.
+
+    Example prompts:
+    - "Buy when RSI drops below 30, sell when it goes above 70"
+    - "Golden cross strategy with 50 and 200 day SMA"
+    - "Buy the dip using Bollinger Bands"
+    - "MACD crossover with RSI confirmation below 50"
+    """
+    from time import perf_counter
+
+    t0 = perf_counter()
+
+    # Step 1: Parse English → structured strategy spec
+    try:
+        parser = NLParser()
+    except ValueError as exc:
+        raise HTTPException(500, f"LLM configuration error: {exc}") from exc
+
+    spec = await parser.parse(req.prompt)
+
+    if "error" in spec:
+        raise HTTPException(
+            400,
+            {
+                "error": spec["error"],
+                "hint": "Try being more specific. Example: 'Buy when RSI goes below 30 and MACD crosses up. Sell when RSI goes above 70.'",
+            },
+        )
+
+    parse_time = perf_counter() - t0
+
+    # Step 2: Create DynamicStrategy from parsed spec
+    strategy = DynamicStrategy(spec)
+
+    # Step 3: Download historical data
+    period_map = {"1y": "1y", "2y": "2y", "5y": "5y", "max": "max"}
+    yf_period = period_map.get(req.period, "2y")
+
+    df = await asyncio.to_thread(
+        lambda: yf.download(req.ticker, period=yf_period, progress=False, auto_adjust=True)
+    )
+
+    if df.empty:
+        raise HTTPException(404, f"No data found for {req.ticker}")
+
+    # Flatten MultiIndex columns if present
+    if isinstance(df.columns, pd.MultiIndex):
+        df.columns = [col[0] if isinstance(col, tuple) else col for col in df.columns]
+
+    # Step 4: Run through existing backtester (unchanged)
+    from backend.engine.backtester import Backtester
+
+    backtester = Backtester(initial_capital=req.initial_capital)
+    result = backtester.run(strategy, df, ticker=req.ticker)
+
+    total_time = perf_counter() - t0
+
+    # Step 5: Return results + parsed spec (transparency)
+    response = result.to_dict()
+    response["parsed_strategy"] = {
+        "strategy_name": spec.get("strategy_name"),
+        "description": spec.get("description"),
+        "buy_conditions": spec.get("buy_conditions"),
+        "buy_logic": spec.get("buy_logic"),
+        "sell_conditions": spec.get("sell_conditions"),
+        "sell_logic": spec.get("sell_logic"),
+        "parameters_used": spec.get("parameters_used"),
+        "original_prompt": req.prompt,
+    }
+    response["timing"] = {
+        "llm_parse_seconds": round(parse_time, 2),
+        "total_seconds": round(total_time, 2),
+    }
+    response["innovation"] = "natural_language_backtesting"
+
+    return response

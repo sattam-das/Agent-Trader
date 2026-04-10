@@ -1,7 +1,7 @@
 """SQLite database layer for persistent storage.
 
 Stores watchlists, trade journal entries, portfolio holdings, and app settings.
-Uses aiosqlite for async FastAPI compatibility.
+Uses synchronous sqlite3 (called via asyncio.to_thread from FastAPI endpoints).
 """
 
 from __future__ import annotations

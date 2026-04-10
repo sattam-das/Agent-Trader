@@ -1,16 +1,23 @@
 import { create } from 'zustand'
 
-export const useStore = create((set) => ({
-  activeTicker: 'AAPL',
+export const useStore = create((set, get) => ({
+  // ── Active ticker ───────────────────────────────────────────────
+  activeTicker: 'RELIANCE.NS',
   setTicker: (ticker) => set({ activeTicker: ticker.toUpperCase() }),
 
-  watchlist: [
-    { ticker: 'RELIANCE.NS', price: 1350.2, change: 1.59 },
-    { ticker: 'AAPL', price: 172.5, change: -0.4 },
-    { ticker: 'TSLA', price: 180.1, change: 2.1 },
-  ],
-  setWatchlist: (items) => set({ watchlist: items }),
-
+  // ── Navigation ──────────────────────────────────────────────────
   activeTab: 'analysis',
   setTab: (tab) => set({ activeTab: tab }),
+
+  // ── Watchlist (fetched from backend) ────────────────────────────
+  watchlist: [],
+  watchlistQuotes: {},
+  setWatchlist: (items) => set({ watchlist: items }),
+  setWatchlistQuotes: (quotes) => set({ watchlistQuotes: quotes }),
+  updateWatchlistQuote: (ticker, quote) =>
+    set((s) => ({ watchlistQuotes: { ...s.watchlistQuotes, [ticker]: quote } })),
+
+  // ── Live quote for active ticker ────────────────────────────────
+  activeQuote: null,
+  setActiveQuote: (q) => set({ activeQuote: q }),
 }))
