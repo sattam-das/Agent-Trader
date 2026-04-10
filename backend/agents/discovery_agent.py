@@ -3,10 +3,9 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from .base_agent import BaseGroqAgent, DiscoveryAnalysis, DiscoverySuggestion
+from .base_agent import BaseGeminiAgent, DiscoveryAnalysis, DiscoverySuggestion
 
-
-class DiscoveryAgent(BaseGroqAgent):
+class DiscoveryAgent(BaseGeminiAgent):
     DEFAULT_FALLBACK_TICKERS = [
         "AAPL", "MSFT", "NVDA", "GOOGL", "AMZN", "META", "TSLA", "AVGO", "AMD", "NFLX",
         "INTC", "QCOM", "ADBE", "CRM", "ORCL", "IBM", "UBER", "SHOP", "PLTR", "SNOW",

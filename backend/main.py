@@ -149,11 +149,11 @@ def _build_agents() -> tuple[NewsAgent, FinancialAgent, RiskAgent, TechnicalAgen
 
 
 def _build_discovery_agent() -> DiscoveryAgent:
-    groq_key = os.getenv("GROQ_API_KEY")
-    if not groq_key:
-        raise HTTPException(status_code=500, detail="Missing GROQ_API_KEY")
+    gemini_key = os.getenv("GEMINI_API_KEY")
+    if not gemini_key:
+        raise HTTPException(status_code=500, detail="Missing GEMINI_API_KEY")
 
-    return DiscoveryAgent(api_key=groq_key)
+    return DiscoveryAgent(api_key=gemini_key)
 
 
 def _get_fetcher() -> DataFetcher:
