@@ -10,7 +10,6 @@ from __future__ import annotations
 import re
 from typing import Any
 
-import numpy as np
 import pandas as pd
 
 from .base_strategy import BaseStrategy
@@ -100,12 +99,14 @@ class DynamicStrategy(BaseStrategy):
         """Evaluate a single condition like {"left": "RSI(14)", "operator": "<", "right": "30"}."""
         left_str = str(condition.get("left", ""))
         operator = str(condition.get("operator", ">"))
-        right_str = str(condition.get("right", "0"))
+        # LLM may return right as int/float (e.g. 30) instead of string "30"
+        right_raw = condition.get("right", "0")
+        right_str = str(right_raw)
 
         left = self._resolve_value(df, left_str)
         right = self._resolve_value(df, right_str)
 
-        return self._apply_operator(left, right, operator)
+        return self._apply_operator(left, right, operator, df.index)
 
     # ------------------------------------------------------------------
     # Indicator Resolution (safe — no eval/exec)
@@ -269,6 +270,7 @@ class DynamicStrategy(BaseStrategy):
         left: pd.Series | float,
         right: pd.Series | float,
         operator: str,
+        index: pd.Index | None = None,
     ) -> pd.Series:
         """Apply a comparison operator between two values."""
         op = operator.strip().lower()
@@ -284,17 +286,19 @@ class DynamicStrategy(BaseStrategy):
         elif op in ("crosses_above", "crossover", "cross_above"):
             # Was below or equal, now above
             if isinstance(left, (int, float)):
-                return pd.Series(False)
+                return pd.Series(False, index=index)
             prev_left = left.shift(1) if isinstance(left, pd.Series) else left
             prev_right = right.shift(1) if isinstance(right, pd.Series) else right
-            return (left > right) & (prev_left <= prev_right)
+            result = (left > right) & (prev_left <= prev_right)
+            return result.fillna(False)
         elif op in ("crosses_below", "crossunder", "cross_below"):
             # Was above or equal, now below
             if isinstance(left, (int, float)):
-                return pd.Series(False)
+                return pd.Series(False, index=index)
             prev_left = left.shift(1) if isinstance(left, pd.Series) else left
             prev_right = right.shift(1) if isinstance(right, pd.Series) else right
-            return (left < right) & (prev_left >= prev_right)
+            result = (left < right) & (prev_left >= prev_right)
+            return result.fillna(False)
         else:
             # Default to >
             return left > right

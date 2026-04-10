@@ -97,6 +97,9 @@ class NLParser:
         if not prompt or len(prompt.strip()) < 5:
             return {"error": "Strategy description is too short. Please describe when to buy and sell."}
 
+        if len(prompt) > 2000:
+            return {"error": "Strategy description is too long (max 2000 characters). Please be concise."}
+
         try:
             completion = await self.client.chat.completions.create(
                 model=self.model,
