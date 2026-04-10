@@ -6,6 +6,7 @@ from time import perf_counter
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, ConfigDict, Field
 
 from backend.agents import FinancialAgent, NewsAgent, RiskAgent
@@ -15,6 +16,14 @@ from backend.utils.data_fetcher import DataFetcher
 load_dotenv()
 
 app = FastAPI(title="AgentTrader API", version="0.1.0")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 class AnalyzeRequest(BaseModel):
