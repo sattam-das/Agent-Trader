@@ -177,9 +177,7 @@ AgentTrader/
 
 - **Sattam Das** — [sattam-das](https://github.com/sattam-das)
 - **Rajesh Sardar** — [CpLevi](https://github.com/CpLevi)
+- **Saptarshi Mukhopadhyay** — [saptarshi-2006](https://github.com/saptarshi-2006)
+- **Swarnavo Bagchi** — [bagchiswarna7-ux](https://github.com/bagchiswarna7-ux)
 
 ---
-
-## 📄 License
-
-This project is licensed under the MIT License.
