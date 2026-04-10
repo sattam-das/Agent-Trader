@@ -1,18 +1,20 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { fetchIndicators } from '@/api'
 import { useStore } from '@/store'
-import { LineChart as LineChartIcon, Loader2, AlertTriangle } from 'lucide-react'
-import {
-  LineChart, Line, AreaChart, Area, BarChart, Bar,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine
-} from 'recharts'
+import { createChart, CandlestickSeries, AreaSeries, LineSeries, HistogramSeries, ColorType, CrosshairMode } from 'lightweight-charts'
+import { LineChart as LineChartIcon, Loader2, AlertTriangle, CandlestickChart, TrendingUp } from 'lucide-react'
 
 export default function ChartsPanel() {
   const { activeTicker } = useStore()
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState(null)
   const [error, setError] = useState(null)
-  const [chartType, setChartType] = useState('price')
+  const [activeTab, setActiveTab] = useState('chart')
+  const [chartStyle, setChartStyle] = useState('candlestick')
+  const [showSMA, setShowSMA] = useState({ sma20: true, sma50: true, sma200: false })
+  const [showVolume, setShowVolume] = useState(true)
+  const chartContainerRef = useRef(null)
+  const chartRef = useRef(null)
 
   useEffect(() => {
     let active = true
@@ -32,11 +34,160 @@ export default function ChartsPanel() {
     return () => { active = false }
   }, [activeTicker])
 
+  // Build chart with lightweight-charts v5 API
+  useEffect(() => {
+    if (!data || activeTab !== 'chart' || !chartContainerRef.current) return
+
+    if (chartRef.current) {
+      chartRef.current.remove()
+      chartRef.current = null
+    }
+
+    const container = chartContainerRef.current
+    const priceHistory = data.price_history || []
+    if (priceHistory.length === 0) return
+
+    const chart = createChart(container, {
+      layout: {
+        background: { type: ColorType.Solid, color: '#0a0e1a' },
+        textColor: '#8B95A5',
+        fontFamily: "'SF Mono', 'JetBrains Mono', monospace",
+        fontSize: 11,
+      },
+      grid: {
+        vertLines: { color: '#151c2e' },
+        horzLines: { color: '#151c2e' },
+      },
+      crosshair: {
+        mode: CrosshairMode.Normal,
+        vertLine: { color: '#0066FF44', width: 1, style: 2, labelBackgroundColor: '#0066FF' },
+        horzLine: { color: '#0066FF44', width: 1, style: 2, labelBackgroundColor: '#0066FF' },
+      },
+      rightPriceScale: {
+        borderColor: '#1a243d',
+        scaleMargins: { top: 0.05, bottom: showVolume ? 0.25 : 0.05 },
+      },
+      timeScale: {
+        borderColor: '#1a243d',
+        timeVisible: false,
+        rightOffset: 5,
+        barSpacing: 6,
+        minBarSpacing: 3,
+      },
+      width: container.clientWidth,
+      height: container.clientHeight,
+    })
+
+    chartRef.current = chart
+
+    const ohlcData = priceHistory.map(p => ({
+      time: p.date,
+      open: p.open,
+      high: p.high,
+      low: p.low,
+      close: p.close,
+    }))
+
+    // v5 API: chart.addSeries(SeriesType, options)
+    if (chartStyle === 'candlestick') {
+      const mainSeries = chart.addSeries(CandlestickSeries, {
+        upColor: '#00DC82',
+        downColor: '#FF4757',
+        borderUpColor: '#00DC82',
+        borderDownColor: '#FF4757',
+        wickUpColor: '#00DC8288',
+        wickDownColor: '#FF475788',
+      })
+      mainSeries.setData(ohlcData)
+    } else {
+      const mainSeries = chart.addSeries(AreaSeries, {
+        topColor: '#0066FF40',
+        bottomColor: '#0066FF05',
+        lineColor: '#0066FF',
+        lineWidth: 2,
+      })
+      mainSeries.setData(ohlcData.map(d => ({ time: d.time, value: d.close })))
+    }
+
+    // SMA overlays
+    if (showSMA.sma20) {
+      const sma = chart.addSeries(LineSeries, {
+        color: '#FFB800',
+        lineWidth: 1,
+        crosshairMarkerVisible: false,
+        priceLineVisible: false,
+        lastValueVisible: false,
+      })
+      sma.setData(calcSMA(priceHistory, 20))
+    }
+
+    if (showSMA.sma50) {
+      const sma = chart.addSeries(LineSeries, {
+        color: '#00BFFF',
+        lineWidth: 1,
+        crosshairMarkerVisible: false,
+        priceLineVisible: false,
+        lastValueVisible: false,
+      })
+      sma.setData(calcSMA(priceHistory, 50))
+    }
+
+    if (showSMA.sma200) {
+      const sma = chart.addSeries(LineSeries, {
+        color: '#FF6B81',
+        lineWidth: 1,
+        crosshairMarkerVisible: false,
+        priceLineVisible: false,
+        lastValueVisible: false,
+      })
+      sma.setData(calcSMA(priceHistory, 200))
+    }
+
+    // Volume
+    if (showVolume) {
+      const volumeSeries = chart.addSeries(HistogramSeries, {
+        priceFormat: { type: 'volume' },
+        priceScaleId: 'volume',
+      })
+
+      chart.priceScale('volume').applyOptions({
+        scaleMargins: { top: 0.8, bottom: 0 },
+        drawTicks: false,
+      })
+
+      volumeSeries.setData(priceHistory.map(p => ({
+        time: p.date,
+        value: p.volume,
+        color: p.close >= p.open ? '#00DC8233' : '#FF475733',
+      })))
+    }
+
+    chart.timeScale().fitContent()
+
+    const resizeObserver = new ResizeObserver(() => {
+      if (chartRef.current && container) {
+        chartRef.current.applyOptions({ width: container.clientWidth, height: container.clientHeight })
+      }
+    })
+    resizeObserver.observe(container)
+
+    return () => {
+      resizeObserver.disconnect()
+      if (chartRef.current) {
+        chartRef.current.remove()
+        chartRef.current = null
+      }
+    }
+  }, [data, activeTab, chartStyle, showSMA, showVolume])
+
+  const indicators = data?.indicators || {}
+  const lastPrice = data?.price_history?.slice(-1)[0]
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center p-32 space-y-4 animate-fade-in">
         <Loader2 className="w-10 h-10 text-primary animate-spin" />
-        <p className="text-sm text-muted-foreground font-mono">Loading chart data for {activeTicker}...</p>
+        <p className="text-sm text-muted-foreground font-mono">Loading chart for {activeTicker}...</p>
       </div>
     )
   }
@@ -46,7 +197,7 @@ export default function ChartsPanel() {
       <div className="p-6 border border-destructive/50 bg-destructive/10 rounded-xl space-y-2 max-w-2xl mx-auto mt-12 animate-fade-in">
         <div className="flex items-center gap-2 text-destructive">
           <AlertTriangle className="w-5 h-5" />
-          <h3 className="font-bold">Chart Data Error</h3>
+          <h3 className="font-bold">Chart Error</h3>
         </div>
         <p className="text-sm font-mono text-destructive/80">{error}</p>
       </div>
@@ -55,156 +206,105 @@ export default function ChartsPanel() {
 
   if (!data) return null
 
-  const priceData = (data.price_history || []).map((p, i) => ({
-    idx: i,
-    date: p.date ? new Date(p.date).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }) : i,
-    close: p.close,
-    open: p.open,
-    high: p.high,
-    low: p.low,
-    volume: p.volume,
-  }))
-
-  // Only show last 120 points for readability
-  const displayData = priceData.slice(-120)
-  const indicators = data.indicators || {}
-
-  const TABS = [
-    { id: 'price', label: 'Price' },
-    { id: 'volume', label: 'Volume' },
-    { id: 'indicators', label: 'Indicators' },
-  ]
-
-  const formatK = (v) => {
-    if (v >= 1e7) return `${(v/1e7).toFixed(1)}Cr`
-    if (v >= 1e5) return `${(v/1e5).toFixed(1)}L`
-    if (v >= 1e3) return `${(v/1e3).toFixed(1)}K`
-    return v
-  }
-
   return (
-    <div className="space-y-6 animate-fade-in pb-12">
+    <div className="space-y-4 animate-fade-in pb-12">
       {/* Header */}
-      <div className="glass-card rounded-xl p-6">
-        <div className="flex items-center justify-between">
+      <div className="glass-card rounded-xl p-5">
+        <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-cyan-500/15 flex items-center justify-center">
               <LineChartIcon className="w-5 h-5 text-cyan-400" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-foreground">{activeTicker} Charts</h1>
-              <p className="text-xs text-muted-foreground font-mono">{displayData.length} data points</p>
+              <h1 className="text-xl font-bold text-foreground">{activeTicker}</h1>
+              {lastPrice && (
+                <div className="flex items-center gap-2 text-xs font-mono">
+                  <span className="text-muted-foreground">O:{lastPrice.open?.toFixed(2)}</span>
+                  <span className="text-muted-foreground">H:{lastPrice.high?.toFixed(2)}</span>
+                  <span className="text-muted-foreground">L:{lastPrice.low?.toFixed(2)}</span>
+                  <span className={`font-bold ${lastPrice.close >= lastPrice.open ? 'text-success' : 'text-destructive'}`}>
+                    C:{lastPrice.close?.toFixed(2)}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
-          <div className="flex gap-1 bg-secondary/50 p-1 rounded-lg">
-            {TABS.map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setChartType(tab.id)}
-                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
-                  chartType === tab.id ? 'bg-primary text-white' : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                {tab.label}
+          <div className="flex items-center gap-3">
+            <div className="flex gap-1 bg-secondary/50 p-1 rounded-lg">
+              <button onClick={() => setActiveTab('chart')}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all flex items-center gap-1.5 ${activeTab === 'chart' ? 'bg-primary text-white' : 'text-muted-foreground hover:text-foreground'}`}>
+                <CandlestickChart className="w-3.5 h-3.5" /> Chart
               </button>
-            ))}
+              <button onClick={() => setActiveTab('indicators')}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all flex items-center gap-1.5 ${activeTab === 'indicators' ? 'bg-primary text-white' : 'text-muted-foreground hover:text-foreground'}`}>
+                <TrendingUp className="w-3.5 h-3.5" /> Indicators
+              </button>
+            </div>
           </div>
         </div>
+
+        {activeTab === 'chart' && (
+          <div className="flex items-center gap-4 mt-4 pt-3 border-t border-border/50 flex-wrap">
+            <div className="flex gap-1 bg-secondary/30 p-0.5 rounded-md">
+              <button onClick={() => setChartStyle('candlestick')}
+                className={`px-2.5 py-1 text-xs rounded transition-all ${chartStyle === 'candlestick' ? 'bg-primary/20 text-primary' : 'text-muted-foreground'}`}>
+                Candlestick
+              </button>
+              <button onClick={() => setChartStyle('area')}
+                className={`px-2.5 py-1 text-xs rounded transition-all ${chartStyle === 'area' ? 'bg-primary/20 text-primary' : 'text-muted-foreground'}`}>
+                Area
+              </button>
+            </div>
+            <div className="h-4 w-px bg-border/50" />
+            <div className="flex gap-2">
+              <Chip label="SMA 20" color="#FFB800" active={showSMA.sma20} onClick={() => setShowSMA(s => ({ ...s, sma20: !s.sma20 }))} />
+              <Chip label="SMA 50" color="#00BFFF" active={showSMA.sma50} onClick={() => setShowSMA(s => ({ ...s, sma50: !s.sma50 }))} />
+              <Chip label="SMA 200" color="#FF6B81" active={showSMA.sma200} onClick={() => setShowSMA(s => ({ ...s, sma200: !s.sma200 }))} />
+            </div>
+            <div className="h-4 w-px bg-border/50" />
+            <Chip label="Volume" color="#0066FF" active={showVolume} onClick={() => setShowVolume(v => !v)} />
+          </div>
+        )}
       </div>
 
-      {/* Price Chart */}
-      {chartType === 'price' && (
-        <div className="border border-border bg-card rounded-xl p-6">
-          <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-4">Price History</h3>
-          <div className="h-[400px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={displayData}>
-                <defs>
-                  <linearGradient id="priceGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#0066FF" stopOpacity={0.3} />
-                    <stop offset="100%" stopColor="#0066FF" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1a243d" />
-                <XAxis dataKey="date" tick={{ fill: '#8B95A5', fontSize: 10 }} interval="preserveStartEnd" />
-                <YAxis tick={{ fill: '#8B95A5', fontSize: 10 }} domain={['auto', 'auto']} />
-                <Tooltip
-                  contentStyle={{ backgroundColor: '#0D1322', borderColor: '#1a243d', color: '#fff', fontFamily: 'monospace', fontSize: 12 }}
-                  formatter={(v) => [typeof v === 'number' ? v.toFixed(2) : v]}
-                />
-                <Area type="monotone" dataKey="close" stroke="#0066FF" strokeWidth={2} fill="url(#priceGrad)" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
+      {/* Chart */}
+      {activeTab === 'chart' && (
+        <div className="border border-border bg-[#0a0e1a] rounded-xl overflow-hidden" style={{ height: '520px' }}>
+          <div ref={chartContainerRef} style={{ width: '100%', height: '100%' }} />
         </div>
       )}
 
-      {/* Volume Chart */}
-      {chartType === 'volume' && (
-        <div className="border border-border bg-card rounded-xl p-6">
-          <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-4">Volume</h3>
-          <div className="h-[400px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={displayData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1a243d" />
-                <XAxis dataKey="date" tick={{ fill: '#8B95A5', fontSize: 10 }} interval="preserveStartEnd" />
-                <YAxis tick={{ fill: '#8B95A5', fontSize: 10 }} tickFormatter={formatK} />
-                <Tooltip
-                  contentStyle={{ backgroundColor: '#0D1322', borderColor: '#1a243d', color: '#fff', fontFamily: 'monospace', fontSize: 12 }}
-                  formatter={(v) => [formatK(v), 'Volume']}
-                />
-                <Bar dataKey="volume" fill="#0066FF" fillOpacity={0.6} radius={[2, 2, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      )}
-
-      {/* Indicators Summary */}
-      {chartType === 'indicators' && (
+      {/* Indicators */}
+      {activeTab === 'indicators' && (
         <div className="space-y-4">
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 stagger-children">
-            {Object.entries(indicators).map(([key, value]) => {
-              if (typeof value === 'object' && value !== null) return null
-              const numVal = typeof value === 'number' ? value : null
-              return (
-                <div key={key} className="p-4 border border-border bg-card rounded-xl space-y-1">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider font-bold">
-                    {key.replace(/_/g, ' ')}
-                  </p>
-                  <p className="text-xl font-mono font-bold text-foreground">
-                    {numVal !== null ? numVal.toFixed(2) : String(value)}
-                  </p>
-                </div>
-              )
-            })}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <IndCard label="RSI (14)" value={indicators.rsi_14} fmt={v => v.toFixed(1)} color={indicators.rsi_14 > 70 ? '#FF4757' : indicators.rsi_14 < 30 ? '#00DC82' : '#0066FF'} />
+            <IndCard label="SMA 20" value={indicators.sma_20} fmt={v => v.toFixed(2)} color="#FFB800" />
+            <IndCard label="SMA 50" value={indicators.sma_50} fmt={v => v.toFixed(2)} color="#00BFFF" />
+            <IndCard label="SMA 200" value={indicators.sma_200} fmt={v => v.toFixed(2)} color="#FF6B81" />
+            <IndCard label="MACD" value={indicators.macd_line} fmt={v => v.toFixed(2)} color={indicators.macd_line >= 0 ? '#00DC82' : '#FF4757'} />
+            <IndCard label="Signal" value={indicators.macd_signal} fmt={v => v.toFixed(2)} color="#8B95A5" />
+            <IndCard label="ATR (14)" value={indicators.atr_14} fmt={v => v.toFixed(2)} color="#9B59B6" />
+            <IndCard label="BB Width" value={indicators.bb_upper && indicators.bb_lower ? indicators.bb_upper - indicators.bb_lower : null} fmt={v => v.toFixed(2)} color="#E67E22" />
           </div>
 
-          {/* RSI Chart if available */}
           {indicators.rsi_14 !== undefined && (
-            <div className="border border-border bg-card rounded-xl p-6">
-              <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-2">RSI (14)</h3>
+            <div className="border border-border bg-card rounded-xl p-5">
+              <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-3">RSI (14)</h3>
               <div className="flex items-center gap-4">
-                <div className={`text-3xl font-mono font-bold ${
-                  indicators.rsi_14 > 70 ? 'text-destructive' : indicators.rsi_14 < 30 ? 'text-success' : 'text-foreground'
-                }`}>
+                <div className={`text-4xl font-mono font-bold ${indicators.rsi_14 > 70 ? 'text-destructive' : indicators.rsi_14 < 30 ? 'text-success' : 'text-primary'}`}>
                   {indicators.rsi_14.toFixed(1)}
                 </div>
                 <div className="flex-1">
-                  <div className="w-full bg-secondary h-3 rounded-full overflow-hidden relative">
-                    <div className="absolute left-[30%] w-px h-full bg-success/50" />
-                    <div className="absolute left-[70%] w-px h-full bg-destructive/50" />
-                    <div
-                      className={`h-full rounded-full transition-all ${
-                        indicators.rsi_14 > 70 ? 'bg-destructive' : indicators.rsi_14 < 30 ? 'bg-success' : 'bg-primary'
-                      }`}
-                      style={{ width: `${Math.min(100, indicators.rsi_14)}%` }}
-                    />
+                  <div className="w-full bg-secondary h-4 rounded-full overflow-hidden relative">
+                    <div className="absolute left-[30%] w-px h-full bg-success/60 z-10" />
+                    <div className="absolute left-[70%] w-px h-full bg-destructive/60 z-10" />
+                    <div className={`h-full rounded-full transition-all ${indicators.rsi_14 > 70 ? 'bg-destructive' : indicators.rsi_14 < 30 ? 'bg-success' : 'bg-primary'}`}
+                      style={{ width: `${Math.min(100, indicators.rsi_14)}%` }} />
                   </div>
                   <div className="flex justify-between text-xs text-muted-foreground mt-1 font-mono">
-                    <span>Oversold (30)</span>
-                    <span>Overbought (70)</span>
+                    <span>Oversold</span><span>Neutral</span><span>Overbought</span>
                   </div>
                 </div>
               </div>
@@ -214,4 +314,34 @@ export default function ChartsPanel() {
       )}
     </div>
   )
+}
+
+function Chip({ label, color, active, onClick }) {
+  return (
+    <button onClick={onClick}
+      className={`px-2.5 py-1 text-xs rounded-md border transition-all flex items-center gap-1.5 ${active ? 'border-border bg-secondary/50 text-foreground' : 'border-transparent text-muted-foreground/50'}`}>
+      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: active ? color : '#333' }} />
+      {label}
+    </button>
+  )
+}
+
+function IndCard({ label, value, fmt, color }) {
+  if (value === null || value === undefined) return null
+  return (
+    <div className="p-3 border border-border bg-card rounded-xl">
+      <p className="text-xs text-muted-foreground uppercase tracking-wider font-bold mb-1">{label}</p>
+      <p className="text-xl font-mono font-bold" style={{ color }}>{fmt(value)}</p>
+    </div>
+  )
+}
+
+function calcSMA(priceHistory, period) {
+  const result = []
+  for (let i = period - 1; i < priceHistory.length; i++) {
+    let sum = 0
+    for (let j = i - period + 1; j <= i; j++) sum += priceHistory[j].close
+    result.push({ time: priceHistory[i].date, value: sum / period })
+  }
+  return result
 }
