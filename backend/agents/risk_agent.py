@@ -3,10 +3,10 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from .base_agent import BaseGroqAgent, RiskAnalysis
+from .base_agent import BaseGeminiAgent, RiskAnalysis
 
 
-class RiskAgent(BaseGroqAgent):
+class RiskAgent(BaseGeminiAgent):
     async def analyze(self, risk_data: dict[str, Any]) -> RiskAnalysis:
         normalized = {
             "beta": risk_data.get("beta"),

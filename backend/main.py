@@ -134,16 +134,16 @@ class HealthResponse(BaseModel):
 # Helpers
 # ------------------------------------------------------------------
 def _build_agents() -> tuple[NewsAgent, FinancialAgent, RiskAgent, TechnicalAgent, MacroAgent]:
-    groq_key = os.getenv("GROQ_API_KEY")
-    if not groq_key:
-        raise HTTPException(status_code=500, detail="Missing GROQ_API_KEY")
+    gemini_key = os.getenv("GEMINI_API_KEY")
+    if not gemini_key:
+        raise HTTPException(status_code=500, detail="Missing GEMINI_API_KEY")
 
     return (
-        NewsAgent(api_key=groq_key),
-        FinancialAgent(api_key=groq_key),
-        RiskAgent(api_key=groq_key),
-        TechnicalAgent(api_key=groq_key),
-        MacroAgent(api_key=groq_key),
+        NewsAgent(api_key=gemini_key),
+        FinancialAgent(api_key=gemini_key),
+        RiskAgent(api_key=gemini_key),
+        TechnicalAgent(api_key=gemini_key),
+        MacroAgent(api_key=gemini_key),
     )
 
 

@@ -3,10 +3,10 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from .base_agent import BaseGroqAgent, NewsAnalysis
+from .base_agent import BaseGeminiAgent, NewsAnalysis
 
 
-class NewsAgent(BaseGroqAgent):
+class NewsAgent(BaseGeminiAgent):
     async def analyze(self, news_data: list[dict[str, Any]]) -> NewsAnalysis:
         headlines: list[str] = []
         for article in news_data[:10]:
