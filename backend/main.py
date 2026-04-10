@@ -16,7 +16,6 @@ import yfinance as yf
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-
 from pydantic import BaseModel, ConfigDict, Field
 
 from backend.agents import (
@@ -36,6 +35,14 @@ from backend.utils.technical_indicators import TechnicalIndicators
 load_dotenv()
 
 app = FastAPI(title="AgentTrader API", version="3.0.0")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 
@@ -70,11 +77,11 @@ class AnalyzeResponse(BaseModel):
     model: str
     latency_ms: int
     result: OrchestrationResult
+    historical_prices: dict[str, float] = Field(default_factory=dict)
     technical_indicators: dict[str, Any] = Field(default_factory=dict)
     monte_carlo: dict[str, Any] = Field(default_factory=dict)
     analyst_targets: dict[str, Any] = Field(default_factory=dict)
     price_history: list[dict[str, Any]] = Field(default_factory=list)
-
 
 class IndicatorsResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -326,6 +333,7 @@ async def analyze_stock(request: AnalyzeRequest) -> AnalyzeResponse:
         model=news_agent.model,
         latency_ms=latency_ms,
         result=orchestration,
+        historical_prices=stock_payload.get("historical_prices", {}),
         technical_indicators=indicators,
         monte_carlo=simulation,
         analyst_targets=analyst_targets,

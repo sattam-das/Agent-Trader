@@ -93,6 +93,11 @@ class DataFetcher:
         # Fetch news (NewsAPI with Google News RSS fallback)
         news_articles = self._fetch_news(company_name)
 
+        historical_prices = {}
+        if history_1y is not None and not history_1y.empty and "Close" in history_1y:
+            for date, price in history_1y["Close"].items():
+                historical_prices[date.strftime("%Y-%m-%d")] = float(price)
+
         # Fetch insider transactions
         insider_trades = self._fetch_insider_trades(stock)
 
@@ -109,6 +114,7 @@ class DataFetcher:
             "ticker": ticker,
             "company_name": str(company_name),
             "fetched_at": datetime.now(timezone.utc).isoformat(),
+            "historical_prices": historical_prices,
             "sector": str(info.get("sector") or "Unknown"),
             "industry": str(info.get("industry") or "Unknown"),
             "current_price": self._to_primitive(info.get("currentPrice") or info.get("regularMarketPrice")),
@@ -477,6 +483,7 @@ class DataFetcher:
             "financials",
             "risk_data",
             "news",
+            "historical_prices",
         }
         if not required_keys.issubset(payload.keys()):
             return False
