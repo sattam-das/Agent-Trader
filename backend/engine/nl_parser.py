@@ -1,6 +1,6 @@
 """Natural Language Strategy Parser — converts English to structured strategy specs.
 
-Uses Groq LLM to parse human-readable trading strategy descriptions into
+Uses Google Gemini to parse human-readable trading strategy descriptions into
 a structured JSON specification that DynamicStrategy can execute.
 """
 
@@ -10,7 +10,10 @@ import json
 import os
 from typing import Any
 
-from groq import AsyncGroq
+from google import genai
+from google.genai import types
+
+from backend.agents.base_agent import _get_client
 
 
 _SYSTEM_PROMPT = """You are a quantitative trading strategy parser. Your ONLY job is to convert
@@ -75,11 +78,11 @@ class NLParser:
     """Parse natural language strategy descriptions into structured specs."""
 
     def __init__(self, api_key: str | None = None, model: str | None = None):
-        resolved_key = api_key or os.getenv("GROQ_API_KEY")
+        resolved_key = api_key or os.getenv("GEMINI_API_KEY")
         if not resolved_key:
-            raise ValueError("GROQ_API_KEY required for NL parsing")
-        self.client = AsyncGroq(api_key=resolved_key)
-        self.model = model or os.getenv("GROQ_MODEL") or "llama-3.3-70b-versatile"
+            raise ValueError("GEMINI_API_KEY required for NL parsing")
+        self.client = _get_client(resolved_key)
+        self.model_name = model or os.getenv("GEMINI_MODEL") or "gemini-2.5-flash"
 
     async def parse(self, prompt: str) -> dict[str, Any]:
         """Parse an English strategy description into a structured spec.
@@ -101,21 +104,36 @@ class NLParser:
             return {"error": "Strategy description is too long (max 2000 characters). Please be concise."}
 
         try:
-            completion = await self.client.chat.completions.create(
-                model=self.model,
-                temperature=0,
-                response_format={"type": "json_object"},
-                messages=[
-                    {"role": "system", "content": _SYSTEM_PROMPT},
-                    {"role": "user", "content": f"Parse this trading strategy:\n\n{prompt}"},
-                ],
+            full_prompt = f"{_SYSTEM_PROMPT}\n\nParse this trading strategy:\n\n{prompt}"
+
+            response = await self.client.aio.models.generate_content(
+                model=self.model_name,
+                contents=full_prompt,
+                config=types.GenerateContentConfig(
+                    temperature=0,
+                    response_mime_type="application/json",
+                ),
             )
 
-            message = completion.choices[0].message.content if completion.choices else None
+            # Handle safety-blocked or empty responses
+            try:
+                message = response.text
+            except (ValueError, AttributeError):
+                return {"error": "LLM response was blocked by safety filters. Try rephrasing your strategy."}
+
             if not message:
                 return {"error": "LLM returned empty response"}
 
-            spec = json.loads(message)
+            # Strip markdown fences if present
+            text = message.strip()
+            if text.startswith("```"):
+                lines = text.split("\n", 1)
+                text = lines[1] if len(lines) > 1 else text[3:]
+            if text.endswith("```"):
+                text = text[:-3]
+            text = text.strip()
+
+            spec = json.loads(text)
 
             if not isinstance(spec, dict):
                 return {"error": "LLM returned non-object response"}

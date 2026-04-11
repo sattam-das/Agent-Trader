@@ -6,7 +6,7 @@ A professional-grade, 5-agent algorithmic trading analysis system that combines 
 
 ![Python](https://img.shields.io/badge/Python-3.9+-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-2.0-009688?logo=fastapi&logoColor=white)
-![Streamlit](https://img.shields.io/badge/Streamlit-1.38+-FF4B4B?logo=streamlit&logoColor=white)
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
 ---
@@ -50,13 +50,13 @@ Technical: 25%  |  Macro:     15%
 - Recommendations: STRONG SELL → SELL → HOLD → BUY → STRONG BUY
 
 ### 🎨 Professional Dashboard
-6-tab Streamlit interface with dark theme:
-1. **Overview** — Radar chart + recommendation badge + rationale
-2. **TradingView** — Free live interactive chart widget
-3. **Technical** — Candlestick + RSI + MACD + signal cards
-4. **Probability** — Monte Carlo paths + VaR + probability tables
-5. **Fundamentals** — Analyst targets + financial data
-6. **Risk & Macro** — Institutional & insider intelligence
+React + Vite frontend with dark theme:
+1. **Discover** — AI-powered stock discovery
+2. **Analysis** — 5-agent AI analysis with recommendation
+3. **Charts** — Professional candlestick charts (TradingView Lightweight Charts)
+4. **Backtest** — Classic + Natural Language backtesting
+5. **Screener** — AI-powered stock screener
+6. **News / Journal / Portfolio** — Full trading workspace
 
 ---
 
@@ -64,7 +64,7 @@ Technical: 25%  |  Macro:     15%
 
 ### Prerequisites
 - Python 3.9+
-- Free [Groq API Key](https://console.groq.com) (no credit card needed)
+- Free [Google Gemini API Key](https://aistudio.google.com/apikey) (no credit card needed)
 
 ### Setup
 
@@ -75,7 +75,7 @@ cd Agent-Trader
 
 # Set up environment
 cp .env.example .env
-# Edit .env and add your GROQ_API_KEY
+# Edit .env and add your GEMINI_API_KEY
 
 # Run (creates venv, installs deps, starts both servers)
 ./run_app.sh
@@ -92,10 +92,10 @@ pip install -r requirements.txt
 uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload &
 
 # Start frontend
-streamlit run frontend/app.py --server.port 8501
+cd next-frontend && npm install && npm run dev
 ```
 
-Open **http://localhost:8501** in your browser.
+Open **http://localhost:5173** in your browser.
 
 ---
 
@@ -139,13 +139,11 @@ AgentTrader/
 │       ├── data_fetcher.py        # yfinance + News data pipeline
 │       ├── technical_indicators.py # RSI, MACD, BB, SMA, ATR
 │       └── monte_carlo.py         # GBM simulation engine
-├── frontend/
-│   └── app.py                     # Streamlit dashboard (6 tabs)
+├── next-frontend/                   # React + Vite dashboard
+│   └── src/components/            # Charts, Analysis, Backtest, etc.
 ├── requirements.txt
 ├── run_app.sh                     # Mac/Linux run script
-├── run_app.bat                    # Windows run script
-├── build_cache.py                 # Pre-cache demo tickers
-├── .env.example                   # Environment template
+├── .env                           # Environment variables
 └── .gitignore
 ```
 
@@ -155,9 +153,9 @@ AgentTrader/
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `GROQ_API_KEY` | ✅ | Free at [console.groq.com](https://console.groq.com) |
+| `GEMINI_API_KEY` | ✅ | Free at [aistudio.google.com/apikey](https://aistudio.google.com/apikey) |
 | `NEWS_API_KEY` | ❌ | Optional — falls back to free Google News RSS |
-| `GROQ_MODEL` | ❌ | Default: `llama-3.3-70b-versatile` |
+| `GEMINI_MODEL` | ❌ | Default: `gemini-2.0-flash` |
 
 ---
 
@@ -165,9 +163,9 @@ AgentTrader/
 
 | Layer | Technology |
 |-------|-----------|
-| **LLM** | Groq Cloud (Llama 3.3 70B) |
+| **LLM** | Google Gemini 2.5 Flash |
 | **Backend** | FastAPI, asyncio, Pydantic v2 |
-| **Frontend** | Streamlit, Plotly, TradingView Widget |
+| **Frontend** | React, Vite, TradingView Lightweight Charts |
 | **Data** | yfinance, Google News RSS, NewsAPI |
 | **Analysis** | NumPy, Pandas (pure math — no paid libraries) |
 

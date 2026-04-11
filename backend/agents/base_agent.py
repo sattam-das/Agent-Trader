@@ -6,10 +6,22 @@ from abc import ABC, abstractmethod
 from typing import Any, TypeVar
 
 from google import genai
+from google.genai import types
 from pydantic import BaseModel, ConfigDict, Field
 
 DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
 TModel = TypeVar("TModel", bound=BaseModel)
+
+# Module-level client singleton
+_client: genai.Client | None = None
+
+
+def _get_client(api_key: str) -> genai.Client:
+    """Return a shared Gemini client (created once per process)."""
+    global _client
+    if _client is None:
+        _client = genai.Client(api_key=api_key)
+    return _client
 
 
 # ------------------------------------------------------------------
@@ -80,43 +92,67 @@ class DiscoveryAnalysis(BaseModel):
 
 
 # ------------------------------------------------------------------
-# Base Agent
+# Base Agent (Google Gemini — google.genai SDK)
 # ------------------------------------------------------------------
 class BaseGeminiAgent(ABC):
+    """Base agent using Google Gemini API (google.genai SDK)."""
+
     def __init__(self, api_key: str | None = None, model: str | None = None) -> None:
         resolved_api_key = api_key or os.getenv("GEMINI_API_KEY")
         if not resolved_api_key:
-            raise ValueError("GEMINI API key is required. Set GEMINI_API_KEY or pass api_key.")
+            raise ValueError("GEMINI_API_KEY is required. Set GEMINI_API_KEY env var or pass api_key.")
 
-        self.client = genai.Client(api_key=resolved_api_key)
-        self.model = model or os.getenv("GEMINI_MODEL") or DEFAULT_GEMINI_MODEL
+        self.client = _get_client(resolved_api_key)
+        self.model_name = model or os.getenv("GEMINI_MODEL") or DEFAULT_GEMINI_MODEL
 
     @abstractmethod
     async def analyze(self, payload: Any) -> BaseModel:
         raise NotImplementedError
 
     async def _complete_json(self, prompt: str) -> dict[str, Any]:
-        system_instruction = "You are a senior financial analyst. Return only valid JSON. Do not include markdown."
-        config = genai.types.GenerateContentConfig(
-            temperature=0,
-            system_instruction=system_instruction,
-            response_mime_type="application/json"
-        )
-        
-        response = await self.client.aio.models.generate_content(
-            model=self.model,
-            contents=prompt,
-            config=config,
+        full_prompt = (
+            "You are a senior financial analyst. Return only valid JSON. "
+            "Do not include markdown code fences or any text outside the JSON.\n\n"
+            f"{prompt}"
         )
 
-        message = response.text
+        try:
+            response = await self.client.aio.models.generate_content(
+                model=self.model_name,
+                contents=full_prompt,
+                config=types.GenerateContentConfig(
+                    temperature=0,
+                    response_mime_type="application/json",
+                ),
+            )
+        except Exception as exc:
+            raise RuntimeError(f"Gemini API call failed: {exc}") from exc
+
+        # Handle safety-blocked or empty responses
+        try:
+            message = response.text
+        except (ValueError, AttributeError):
+            raise RuntimeError(
+                "Gemini response was blocked or empty. "
+                "This may be a safety filter issue with the prompt content."
+            )
+
         if not message:
             raise RuntimeError("Gemini returned an empty response.")
 
+        # Strip markdown fences if present (defensive)
+        text = message.strip()
+        if text.startswith("```"):
+            lines = text.split("\n", 1)
+            text = lines[1] if len(lines) > 1 else text[3:]
+        if text.endswith("```"):
+            text = text[:-3]
+        text = text.strip()
+
         try:
-            parsed = json.loads(message)
+            parsed = json.loads(text)
         except json.JSONDecodeError as exc:
-            raise RuntimeError("Gemini returned invalid JSON.") from exc
+            raise RuntimeError(f"Gemini returned invalid JSON: {text[:200]}") from exc
 
         if not isinstance(parsed, dict):
             raise RuntimeError("Gemini JSON response must be an object.")

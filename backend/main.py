@@ -141,25 +141,25 @@ class DiscoverResponse(BaseModel):
 # Helpers
 # ------------------------------------------------------------------
 def _build_agents() -> tuple[NewsAgent, FinancialAgent, RiskAgent, TechnicalAgent, MacroAgent]:
-    gemini_key = os.getenv("GEMINI_API_KEY")
-    if not gemini_key:
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
         raise HTTPException(status_code=500, detail="Missing GEMINI_API_KEY")
 
     return (
-        NewsAgent(api_key=gemini_key),
-        FinancialAgent(api_key=gemini_key),
-        RiskAgent(api_key=gemini_key),
-        TechnicalAgent(api_key=gemini_key),
-        MacroAgent(api_key=gemini_key),
+        NewsAgent(api_key=api_key),
+        FinancialAgent(api_key=api_key),
+        RiskAgent(api_key=api_key),
+        TechnicalAgent(api_key=api_key),
+        MacroAgent(api_key=api_key),
     )
 
 
 def _build_discovery_agent() -> DiscoveryAgent:
-    gemini_key = os.getenv("GEMINI_API_KEY")
-    if not gemini_key:
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
         raise HTTPException(status_code=500, detail="Missing GEMINI_API_KEY")
 
-    return DiscoveryAgent(api_key=gemini_key)
+    return DiscoveryAgent(api_key=api_key)
 
 
 def _get_fetcher() -> DataFetcher:
@@ -249,7 +249,7 @@ async def discover_stocks(
 
     return DiscoverResponse(
         fetched_at=str(market_context.get("fetched_at") or ""),
-        model=discovery_agent.model,
+        model=discovery_agent.model_name,
         latency_ms=latency_ms,
         summary=discovery_result.summary,
         suggestions=discovery_result.suggestions,
@@ -325,7 +325,7 @@ async def analyze_stock(request: AnalyzeRequest) -> AnalyzeResponse:
         industry=str(stock_payload.get("industry") or "Unknown"),
         current_price=stock_payload.get("current_price"),
         fetched_at=str(stock_payload.get("fetched_at") or ""),
-        model=news_agent.model,
+        model=news_agent.model_name,
         latency_ms=latency_ms,
         result=orchestration,
         historical_prices=stock_payload.get("historical_prices", {}),
