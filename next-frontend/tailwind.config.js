@@ -8,43 +8,43 @@ export default {
   theme: {
     extend: {
       colors: {
-        background: "#080C16",
-        foreground: "#FFFFFF",
+        background: "var(--background)",
+        foreground: "var(--foreground)",
         card: {
-          DEFAULT: "#0D1322",
-          foreground: "#FFFFFF",
+          DEFAULT: "var(--card)",
+          foreground: "var(--card-foreground)",
         },
         popover: {
-          DEFAULT: "#0D1322",
-          foreground: "#FFFFFF",
+          DEFAULT: "var(--popover)",
+          foreground: "var(--popover-foreground)",
         },
         primary: {
-          DEFAULT: "#0066FF",
-          foreground: "#FFFFFF",
+          DEFAULT: "var(--primary)",
+          foreground: "var(--primary-foreground)",
         },
         secondary: {
-          DEFAULT: "#1a243d",
-          foreground: "#8B95A5",
+          DEFAULT: "var(--secondary)",
+          foreground: "var(--secondary-foreground)",
         },
         muted: {
-          DEFAULT: "#1a243d",
-          foreground: "#8B95A5",
+          DEFAULT: "var(--muted)",
+          foreground: "var(--muted-foreground)",
         },
         accent: {
-          DEFAULT: "#1a243d",
-          foreground: "#FFFFFF",
+          DEFAULT: "var(--accent)",
+          foreground: "var(--accent-foreground)",
         },
         destructive: {
-          DEFAULT: "#FF3B30",
-          foreground: "#FFFFFF",
+          DEFAULT: "var(--destructive)",
+          foreground: "var(--destructive-foreground)",
         },
         success: {
-          DEFAULT: "#34C759",
-          foreground: "#FFFFFF",
+          DEFAULT: "var(--success)",
+          foreground: "var(--success-foreground)",
         },
-        border: "#1a243d",
-        input: "#1a243d",
-        ring: "#0066FF",
+        border: "var(--border)",
+        input: "var(--input)",
+        ring: "var(--ring)",
       },
       fontFamily: {
         sans: ["Inter", "sans-serif"],

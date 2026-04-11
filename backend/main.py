@@ -37,7 +37,13 @@ app = FastAPI(title="AgentTrader API", version="3.1.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000"],
+    allow_origins=[
+        "http://localhost:5173", 
+        "http://127.0.0.1:5173", 
+        "http://localhost:5174", 
+        "http://127.0.0.1:5174", 
+        "http://localhost:3000"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -936,3 +942,15 @@ async def nl_backtest(req: NLBacktestRequest):
     response["innovation"] = "natural_language_backtesting"
 
     return response
+
+if __name__ == "__main__":
+    import uvicorn
+    import sys
+    from pathlib import Path
+    
+    # Add the project root to sys.path to resolve 'backend' module imports
+    project_root = Path(__file__).resolve().parent.parent
+    sys.path.insert(0, str(project_root))
+    
+    # Run the server
+    uvicorn.run("backend.main:app", host="127.0.0.1", port=8000, reload=True)

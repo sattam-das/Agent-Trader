@@ -209,14 +209,14 @@ export default function ChartsPanel() {
   return (
     <div className="space-y-4 animate-fade-in pb-12">
       {/* Header */}
-      <div className="glass-card rounded-xl p-5">
+      <div className="bg-card border border-border p-4">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-cyan-500/15 flex items-center justify-center">
-              <LineChartIcon className="w-5 h-5 text-cyan-400" />
+            <div className="p-2 border border-border bg-secondary text-primary flex items-center justify-center">
+              <LineChartIcon className="w-5 h-5" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-foreground">{activeTicker}</h1>
+              <h1 className="text-xl font-bold font-mono uppercase text-foreground">{activeTicker}</h1>
               {lastPrice && (
                 <div className="flex items-center gap-2 text-xs font-mono">
                   <span className="text-muted-foreground">O:{lastPrice.open?.toFixed(2)}</span>
@@ -231,29 +231,29 @@ export default function ChartsPanel() {
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="flex gap-1 bg-secondary/50 p-1 rounded-lg">
+            <div className="flex border border-border bg-secondary">
               <button onClick={() => setActiveTab('chart')}
-                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all flex items-center gap-1.5 ${activeTab === 'chart' ? 'bg-primary text-white' : 'text-muted-foreground hover:text-foreground'}`}>
-                <CandlestickChart className="w-3.5 h-3.5" /> Chart
+                className={`px-4 py-2 text-xs font-mono transition-none flex items-center gap-1.5 border-r border-border last:border-r-0 ${activeTab === 'chart' ? 'bg-primary text-white' : 'text-muted-foreground hover:text-foreground'}`}>
+                <CandlestickChart className="w-3.5 h-3.5" /> CHART
               </button>
               <button onClick={() => setActiveTab('indicators')}
-                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all flex items-center gap-1.5 ${activeTab === 'indicators' ? 'bg-primary text-white' : 'text-muted-foreground hover:text-foreground'}`}>
-                <TrendingUp className="w-3.5 h-3.5" /> Indicators
+                className={`px-4 py-2 text-xs font-mono transition-none flex items-center gap-1.5 border-r border-border last:border-r-0 ${activeTab === 'indicators' ? 'bg-primary text-white' : 'text-muted-foreground hover:text-foreground'}`}>
+                <TrendingUp className="w-3.5 h-3.5" /> INDICATORS
               </button>
             </div>
           </div>
         </div>
 
         {activeTab === 'chart' && (
-          <div className="flex items-center gap-4 mt-4 pt-3 border-t border-border/50 flex-wrap">
-            <div className="flex gap-1 bg-secondary/30 p-0.5 rounded-md">
+          <div className="flex items-center gap-4 mt-4 pt-4 border-t border-border flex-wrap">
+            <div className="flex border border-border bg-card">
               <button onClick={() => setChartStyle('candlestick')}
-                className={`px-2.5 py-1 text-xs rounded transition-all ${chartStyle === 'candlestick' ? 'bg-primary/20 text-primary' : 'text-muted-foreground'}`}>
-                Candlestick
+                className={`px-3 py-1.5 text-xs font-mono transition-none border-r border-border last:border-r-0 ${chartStyle === 'candlestick' ? 'bg-primary text-white' : 'bg-secondary text-muted-foreground'}`}>
+                CANDLESTICK
               </button>
               <button onClick={() => setChartStyle('area')}
-                className={`px-2.5 py-1 text-xs rounded transition-all ${chartStyle === 'area' ? 'bg-primary/20 text-primary' : 'text-muted-foreground'}`}>
-                Area
+                className={`px-3 py-1.5 text-xs font-mono transition-none border-r border-border last:border-r-0 ${chartStyle === 'area' ? 'bg-primary text-white' : 'bg-secondary text-muted-foreground'}`}>
+                AREA
               </button>
             </div>
             <div className="h-4 w-px bg-border/50" />
@@ -270,7 +270,7 @@ export default function ChartsPanel() {
 
       {/* Chart */}
       {activeTab === 'chart' && (
-        <div className="border border-border bg-[#0a0e1a] rounded-xl overflow-hidden" style={{ height: '520px' }}>
+        <div className="border border-border bg-[#0a0e1a] overflow-hidden" style={{ height: '520px' }}>
           <div ref={chartContainerRef} style={{ width: '100%', height: '100%' }} />
         </div>
       )}
@@ -290,17 +290,17 @@ export default function ChartsPanel() {
           </div>
 
           {indicators.rsi_14 !== undefined && (
-            <div className="border border-border bg-card rounded-xl p-5">
-              <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-3">RSI (14)</h3>
+            <div className="border border-border bg-card p-4">
+              <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-3">RSI (14)</h3>
               <div className="flex items-center gap-4">
                 <div className={`text-4xl font-mono font-bold ${indicators.rsi_14 > 70 ? 'text-destructive' : indicators.rsi_14 < 30 ? 'text-success' : 'text-primary'}`}>
                   {indicators.rsi_14.toFixed(1)}
                 </div>
                 <div className="flex-1">
-                  <div className="w-full bg-secondary h-4 rounded-full overflow-hidden relative">
+                  <div className="w-full bg-secondary h-4 overflow-hidden relative border border-border">
                     <div className="absolute left-[30%] w-px h-full bg-success/60 z-10" />
                     <div className="absolute left-[70%] w-px h-full bg-destructive/60 z-10" />
-                    <div className={`h-full rounded-full transition-all ${indicators.rsi_14 > 70 ? 'bg-destructive' : indicators.rsi_14 < 30 ? 'bg-success' : 'bg-primary'}`}
+                    <div className={`h-full transition-none ${indicators.rsi_14 > 70 ? 'bg-destructive' : indicators.rsi_14 < 30 ? 'bg-success' : 'bg-primary'}`}
                       style={{ width: `${Math.min(100, indicators.rsi_14)}%` }} />
                   </div>
                   <div className="flex justify-between text-xs text-muted-foreground mt-1 font-mono">
@@ -319,8 +319,8 @@ export default function ChartsPanel() {
 function Chip({ label, color, active, onClick }) {
   return (
     <button onClick={onClick}
-      className={`px-2.5 py-1 text-xs rounded-md border transition-all flex items-center gap-1.5 ${active ? 'border-border bg-secondary/50 text-foreground' : 'border-transparent text-muted-foreground/50'}`}>
-      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: active ? color : '#333' }} />
+      className={`px-3 py-1.5 text-[10px] border transition-none flex items-center tracking-widest uppercase gap-1.5 font-mono ${active ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground'}`}>
+      <span className="w-2 h-2" style={{ backgroundColor: active ? color : '#334155' }} />
       {label}
     </button>
   )
@@ -329,8 +329,8 @@ function Chip({ label, color, active, onClick }) {
 function IndCard({ label, value, fmt, color }) {
   if (value === null || value === undefined) return null
   return (
-    <div className="p-3 border border-border bg-card rounded-xl">
-      <p className="text-xs text-muted-foreground uppercase tracking-wider font-bold mb-1">{label}</p>
+    <div className="p-3 border border-border bg-card">
+      <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mb-1">{label}</p>
       <p className="text-xl font-mono font-bold" style={{ color }}>{fmt(value)}</p>
     </div>
   )

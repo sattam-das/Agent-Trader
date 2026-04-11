@@ -90,48 +90,48 @@ export default function JournalPanel() {
   return (
     <div className="space-y-6 animate-fade-in pb-12">
       {/* Header */}
-      <div className="glass-card rounded-xl p-6">
+      <div className="bg-card border border-border p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-indigo-500/15 flex items-center justify-center">
-              <BookOpen className="w-5 h-5 text-indigo-400" />
+            <div className="p-2 border border-border bg-secondary text-primary flex items-center justify-center">
+              <BookOpen className="w-5 h-5" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-foreground">Trade Journal</h1>
-              <p className="text-xs text-muted-foreground">Track and analyze your trades</p>
+              <h1 className="text-xl font-bold text-foreground font-mono uppercase">Trade Journal</h1>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1">Track and analyze your trades</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <div className="flex gap-1 bg-secondary/50 p-1 rounded-lg">
+            <div className="flex border border-border bg-secondary">
               {['ALL', 'OPEN', 'CLOSED'].map(f => (
-                <button key={f} onClick={() => setFilter(f)} className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${filter === f ? 'bg-primary text-white' : 'text-muted-foreground hover:text-foreground'}`}>
+                <button key={f} onClick={() => setFilter(f)} className={`px-4 py-2 text-xs font-mono transition-none border-r border-border last:border-r-0 ${filter === f ? 'bg-primary text-white' : 'text-muted-foreground hover:text-foreground'}`}>
                   {f}
                 </button>
               ))}
             </div>
             <button
               onClick={() => setShowForm(!showForm)}
-              className="px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg text-sm font-medium flex items-center gap-1.5 transition-all"
+              className="px-4 py-2 bg-primary hover:bg-primary/80 text-white text-sm font-mono flex items-center gap-1.5 transition-none uppercase border border-primary"
             >
-              <Plus className="w-4 h-4" /> New Trade
+              <Plus className="w-4 h-4" /> NEW TRADE
             </button>
           </div>
         </div>
       </div>
 
       {error && (
-        <div className="p-4 border border-destructive/50 bg-destructive/10 rounded-xl flex items-center gap-2">
+        <div className="p-4 border border-destructive bg-destructive/10 flex items-center gap-2">
           <AlertTriangle className="w-5 h-5 text-destructive" />
-          <p className="text-sm font-mono text-destructive/80">{error}</p>
+          <p className="text-sm font-mono text-destructive">{error}</p>
         </div>
       )}
 
       {/* Stats */}
       {statCards.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 stagger-children">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           {statCards.map(s => (
-            <div key={s.label} className="p-3 bg-card border border-border rounded-xl space-y-1">
-              <p className="text-xs text-muted-foreground uppercase tracking-wider font-bold">{s.label}</p>
+            <div key={s.label} className="p-3 bg-card border border-border space-y-1">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">{s.label}</p>
               <p className={`text-lg font-mono font-bold ${s.color}`}>{s.value}</p>
             </div>
           ))}
@@ -140,42 +140,42 @@ export default function JournalPanel() {
 
       {/* Add Trade Form */}
       {showForm && (
-        <form onSubmit={handleAdd} className="border border-primary/30 bg-card rounded-xl p-5 space-y-4 animate-fade-in">
-          <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-            <Plus className="w-4 h-4 text-primary" /> Log New Trade
+        <form onSubmit={handleAdd} className="border border-border bg-card p-5 space-y-4">
+          <h3 className="text-sm font-bold font-mono text-foreground uppercase tracking-widest flex items-center gap-2">
+            <Plus className="w-4 h-4 text-primary" /> LOG NEW TRADE
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
             <div className="space-y-1">
-              <label className="text-xs text-muted-foreground font-bold uppercase">Ticker</label>
-              <input value={form.ticker} onChange={(e) => setForm({ ...form, ticker: e.target.value })} className="w-full bg-background border border-border rounded-md px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary/50" required />
+              <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Ticker</label>
+              <input value={form.ticker} onChange={(e) => setForm({ ...form, ticker: e.target.value })} className="w-full bg-background border border-border px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary" required />
             </div>
             <div className="space-y-1">
-              <label className="text-xs text-muted-foreground font-bold uppercase">Side</label>
-              <select value={form.side} onChange={(e) => setForm({ ...form, side: e.target.value })} className="w-full bg-background border border-border rounded-md px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary/50">
+              <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Side</label>
+              <select value={form.side} onChange={(e) => setForm({ ...form, side: e.target.value })} className="w-full bg-background border border-border px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary">
                 <option value="LONG">LONG</option>
                 <option value="SHORT">SHORT</option>
               </select>
             </div>
             <div className="space-y-1">
-              <label className="text-xs text-muted-foreground font-bold uppercase">Entry Price</label>
-              <input type="number" step="any" value={form.entry_price} onChange={(e) => setForm({ ...form, entry_price: e.target.value })} className="w-full bg-background border border-border rounded-md px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary/50" required />
+              <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Entry Price</label>
+              <input type="number" step="any" value={form.entry_price} onChange={(e) => setForm({ ...form, entry_price: e.target.value })} className="w-full bg-background border border-border px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary" required />
             </div>
             <div className="space-y-1">
-              <label className="text-xs text-muted-foreground font-bold uppercase">Shares</label>
-              <input type="number" value={form.shares} onChange={(e) => setForm({ ...form, shares: e.target.value })} className="w-full bg-background border border-border rounded-md px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary/50" required />
+              <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Shares</label>
+              <input type="number" value={form.shares} onChange={(e) => setForm({ ...form, shares: e.target.value })} className="w-full bg-background border border-border px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary" required />
             </div>
             <div className="space-y-1">
-              <label className="text-xs text-muted-foreground font-bold uppercase">Date</label>
-              <input type="date" value={form.entry_date} onChange={(e) => setForm({ ...form, entry_date: e.target.value })} className="w-full bg-background border border-border rounded-md px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary/50" required />
+              <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Date</label>
+              <input type="date" value={form.entry_date} onChange={(e) => setForm({ ...form, entry_date: e.target.value })} className="w-full bg-background border border-border px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary" required />
             </div>
             <div className="space-y-1">
-              <label className="text-xs text-muted-foreground font-bold uppercase">Notes</label>
-              <input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Optional" className="w-full bg-background border border-border rounded-md px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary/50" />
+              <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Notes</label>
+              <input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Optional" className="w-full bg-background border border-border px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary" />
             </div>
           </div>
           <div className="flex gap-2">
-            <button type="submit" className="px-4 py-2 bg-success hover:bg-success/90 text-white rounded-lg text-sm font-medium transition-all">Add Trade</button>
-            <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 bg-secondary hover:bg-secondary/80 text-foreground rounded-lg text-sm transition-all">Cancel</button>
+            <button type="submit" className="px-4 py-2 bg-success hover:bg-success/80 text-white font-mono text-sm transition-none border border-success">ADD TRADE</button>
+            <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 bg-secondary hover:bg-secondary/80 text-foreground font-mono text-sm transition-none border border-border">CANCEL</button>
           </div>
         </form>
       )}
@@ -184,7 +184,7 @@ export default function JournalPanel() {
       {loading ? (
         <div className="flex justify-center p-12"><Loader2 className="w-8 h-8 text-primary animate-spin" /></div>
       ) : trades.length > 0 ? (
-        <div className="border border-border rounded-xl overflow-hidden">
+        <div className="border border-border bg-card overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -215,7 +215,7 @@ export default function JournalPanel() {
                       {t.return_pct != null ? `${(t.return_pct * 100).toFixed(2)}%` : '—'}
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <span className={`px-2 py-0.5 rounded text-xs font-bold ${t.status === 'OPEN' ? 'bg-primary/15 text-primary border border-primary/20' : 'bg-secondary text-muted-foreground border border-border'}`}>
+                      <span className={`px-2 py-0.5 border text-[10px] font-bold uppercase tracking-widest ${t.status === 'OPEN' ? 'bg-primary/10 text-primary border-primary' : 'bg-transparent text-muted-foreground border-border'}`}>
                         {t.status}
                       </span>
                     </td>
@@ -224,17 +224,17 @@ export default function JournalPanel() {
                         {t.status === 'OPEN' && (
                           showClose === t.id ? (
                             <div className="flex items-center gap-1">
-                              <input type="number" step="any" placeholder="Exit ₹" value={closeForm.exit_price} onChange={(e) => setCloseForm({ ...closeForm, exit_price: e.target.value })} className="w-20 bg-background border border-border rounded px-2 py-1 text-xs font-mono focus:outline-none focus:border-primary/50" />
-                              <button onClick={() => handleClose(t.id)} className="px-2 py-1 bg-success/20 text-success rounded text-xs hover:bg-success/30 transition-colors">✓</button>
-                              <button onClick={() => setShowClose(null)} className="px-2 py-1 bg-secondary text-muted-foreground rounded text-xs hover:text-foreground transition-colors">✕</button>
+                              <input type="number" step="any" placeholder="Exit ₹" value={closeForm.exit_price} onChange={(e) => setCloseForm({ ...closeForm, exit_price: e.target.value })} className="w-20 bg-background border border-border px-2 py-1 text-xs font-mono focus:outline-none focus:border-primary" />
+                              <button onClick={() => handleClose(t.id)} className="px-2 py-1 bg-success/10 border border-success text-success text-xs hover:bg-success/20 transition-none">✓</button>
+                              <button onClick={() => setShowClose(null)} className="px-2 py-1 bg-secondary border border-border text-muted-foreground text-xs hover:text-foreground transition-none">✕</button>
                             </div>
                           ) : (
-                            <button onClick={() => setShowClose(t.id)} className="px-2 py-1 text-xs text-success hover:bg-success/10 rounded transition-colors">
-                              Close
+                            <button onClick={() => setShowClose(t.id)} className="px-2 py-1 text-[10px] uppercase tracking-widest font-bold border border-success text-success hover:bg-success/10 transition-none">
+                              CLOSE
                             </button>
                           )
                         )}
-                        <button onClick={() => handleDelete(t.id)} className="p-1 text-muted-foreground hover:text-destructive transition-colors">
+                        <button onClick={() => handleDelete(t.id)} className="p-1 px-2 border border-transparent text-muted-foreground hover:text-destructive hover:border-destructive transition-none">
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
