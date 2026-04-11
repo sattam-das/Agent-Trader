@@ -1,8 +1,9 @@
 import React from 'react'
 import { useStore } from '@/store'
-import { Lightbulb, Scale, Radar, LineChart, TestTube, Newspaper, Filter, BookOpen, Briefcase } from 'lucide-react'
+import { LayoutDashboard, Lightbulb, Scale, Radar, LineChart, TestTube, Newspaper, Filter, BookOpen, Briefcase } from 'lucide-react'
 
 const TABS = [
+  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'discover', label: 'Discover', icon: Lightbulb },
   { id: 'compare', label: 'Compare', icon: Scale },
   { id: 'analysis', label: 'Analysis', icon: Radar },
@@ -11,15 +12,14 @@ const TABS = [
   { id: 'news', label: 'News', icon: Newspaper },
   { id: 'screener', label: 'Screener', icon: Filter },
   { id: 'journal', label: 'Journal', icon: BookOpen },
-  { id: 'portfolio', label: 'Portfolio', icon: Briefcase },
 ]
 
 export default function TabBar() {
   const { activeTab, setTab } = useStore()
 
   return (
-    <div className="h-[42px] border-b border-border bg-card flex items-center px-2 overflow-x-auto fixed top-[52px] left-[280px] right-0 z-10 select-none">
-      <div className="flex items-center gap-1 min-w-max">
+    <div className="h-[52px] border-b border-white/5 bg-black/40 backdrop-blur-md flex items-center px-4 overflow-x-auto fixed top-[60px] left-[280px] right-0 z-10 select-none transition-all duration-300">
+      <div className="flex items-center gap-2 min-w-max">
         {TABS.map((tab) => {
           const Icon = tab.icon
           const isActive = activeTab === tab.id
@@ -27,13 +27,13 @@ export default function TabBar() {
             <button
               key={tab.id}
               onClick={() => setTab(tab.id)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded transition-all ${
+              className={`flex items-center gap-2 px-4 py-1.5 text-sm font-bold rounded-full transition-all duration-300 ${
                 isActive 
-                  ? 'bg-secondary/80 text-foreground border border-border/80 shadow-sm' 
-                  : 'text-muted-foreground hover:text-foreground hover:bg-secondary/40 border border-transparent'
+                  ? 'bg-gradient-to-r from-primary to-primary/80 text-white shadow-[0_0_12px_rgba(139,92,246,0.3)]' 
+                  : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
               }`}
             >
-              <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-primary' : ''}`} />
+              <Icon className={`w-4 h-4 ${isActive ? 'text-white' : ''}`} />
               {tab.label}
             </button>
           )

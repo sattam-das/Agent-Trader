@@ -8,10 +8,10 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from .base_agent import BaseGroqAgent, MacroAnalysis
+from .base_agent import BaseGeminiAgent, MacroAnalysis
 
 
-class MacroAgent(BaseGroqAgent):
+class MacroAgent(BaseGeminiAgent):
     async def analyze(self, macro_data: dict[str, Any]) -> MacroAnalysis:
         insider_trades = macro_data.get("insider_trades", [])
         institutional_holders = macro_data.get("institutional_holders", [])

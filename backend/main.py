@@ -37,7 +37,13 @@ app = FastAPI(title="AgentTrader API", version="3.1.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000"],
+    allow_origins=[
+        "http://localhost:5173", 
+        "http://127.0.0.1:5173", 
+        "http://localhost:5174", 
+        "http://127.0.0.1:5174", 
+        "http://localhost:3000"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -135,25 +141,25 @@ class DiscoverResponse(BaseModel):
 # Helpers
 # ------------------------------------------------------------------
 def _build_agents() -> tuple[NewsAgent, FinancialAgent, RiskAgent, TechnicalAgent, MacroAgent]:
-    groq_key = os.getenv("GROQ_API_KEY")
-    if not groq_key:
-        raise HTTPException(status_code=500, detail="Missing GROQ_API_KEY")
+    gemini_key = os.getenv("GEMINI_API_KEY")
+    if not gemini_key:
+        raise HTTPException(status_code=500, detail="Missing GEMINI_API_KEY")
 
     return (
-        NewsAgent(api_key=groq_key),
-        FinancialAgent(api_key=groq_key),
-        RiskAgent(api_key=groq_key),
-        TechnicalAgent(api_key=groq_key),
-        MacroAgent(api_key=groq_key),
+        NewsAgent(api_key=gemini_key),
+        FinancialAgent(api_key=gemini_key),
+        RiskAgent(api_key=gemini_key),
+        TechnicalAgent(api_key=gemini_key),
+        MacroAgent(api_key=gemini_key),
     )
 
 
 def _build_discovery_agent() -> DiscoveryAgent:
-    groq_key = os.getenv("GROQ_API_KEY")
-    if not groq_key:
-        raise HTTPException(status_code=500, detail="Missing GROQ_API_KEY")
+    gemini_key = os.getenv("GEMINI_API_KEY")
+    if not gemini_key:
+        raise HTTPException(status_code=500, detail="Missing GEMINI_API_KEY")
 
-    return DiscoveryAgent(api_key=groq_key)
+    return DiscoveryAgent(api_key=gemini_key)
 
 
 def _get_fetcher() -> DataFetcher:
@@ -936,3 +942,15 @@ async def nl_backtest(req: NLBacktestRequest):
     response["innovation"] = "natural_language_backtesting"
 
     return response
+
+if __name__ == "__main__":
+    import uvicorn
+    import sys
+    from pathlib import Path
+    
+    # Add the project root to sys.path to resolve 'backend' module imports
+    project_root = Path(__file__).resolve().parent.parent
+    sys.path.insert(0, str(project_root))
+    
+    # Run the server
+    uvicorn.run("backend.main:app", host="127.0.0.1", port=8000, reload=True)

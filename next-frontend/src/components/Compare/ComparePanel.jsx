@@ -48,37 +48,37 @@ export default function ComparePanel() {
   return (
     <div className="space-y-6 animate-fade-in pb-12">
       {/* Input Section */}
-      <div className="glass-card rounded-xl p-6 space-y-4">
+      <div className="bg-card border border-border p-4 space-y-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-violet-500/15 flex items-center justify-center">
-            <Scale className="w-5 h-5 text-violet-400" />
+          <div className="p-2 border border-border bg-secondary text-primary flex items-center justify-center">
+            <Scale className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Compare Stocks</h1>
-            <p className="text-xs text-muted-foreground">Add up to 5 tickers for side-by-side AI analysis</p>
+            <h1 className="text-xl font-bold font-mono uppercase text-foreground">Compare Stocks</h1>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1">Add up to 5 tickers for side-by-side AI analysis</p>
           </div>
         </div>
 
         <div className="flex flex-wrap gap-2 items-center">
           {tickers.map(t => (
-            <span key={t} className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/15 text-primary border border-primary/25 rounded-md font-mono text-sm">
+            <span key={t} className="flex items-center gap-1.5 px-3 py-1.5 bg-secondary text-foreground border border-border font-mono text-sm">
               {t}
-              <button onClick={() => removeTicker(t)} className="hover:text-destructive transition-colors">
+              <button onClick={() => removeTicker(t)} className="hover:text-destructive transition-none">
                 <X className="w-3 h-3" />
               </button>
             </span>
           ))}
           {tickers.length < 5 && (
-            <form onSubmit={(e) => { e.preventDefault(); addTicker() }} className="flex gap-2">
+            <form onSubmit={(e) => { e.preventDefault(); addTicker() }} className="flex">
               <input
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Add ticker..."
-                className="bg-background border border-border rounded-md px-3 py-1.5 text-sm font-mono focus:outline-none focus:border-primary/50 w-36"
+                placeholder="ADD TICKER..."
+                className="bg-background border border-border border-r-0 px-3 py-1.5 text-sm font-mono focus:outline-none focus:border-primary w-36 uppercase placeholder:text-muted-foreground/50"
               />
-              <button type="submit" className="px-2 py-1.5 bg-secondary hover:bg-secondary/80 rounded-md transition-colors">
-                <Plus className="w-4 h-4" />
+              <button type="submit" className="px-3 py-1.5 bg-secondary border border-border hover:bg-secondary/80 transition-none">
+                <Plus className="w-4 h-4 text-primary" />
               </button>
             </form>
           )}
@@ -87,17 +87,17 @@ export default function ComparePanel() {
         <button
           onClick={handleCompare}
           disabled={loading || tickers.length < 1}
-          className="px-6 py-2.5 bg-primary hover:bg-primary/90 text-white rounded-lg font-medium text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          className="px-6 py-2.5 bg-primary hover:bg-primary/80 text-white font-mono text-sm uppercase transition-none disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 border border-primary w-fit"
         >
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Scale className="w-4 h-4" />}
-          {loading ? 'Analyzing...' : `Compare ${tickers.length} Stock${tickers.length > 1 ? 's' : ''}`}
+          {loading ? 'ANALYZING...' : `COMPARE ${tickers.length} STOCK${tickers.length > 1 ? 'S' : ''}`}
         </button>
       </div>
 
       {error && (
-        <div className="p-4 border border-destructive/50 bg-destructive/10 rounded-xl flex items-center gap-2">
+        <div className="p-4 border border-destructive bg-destructive/10 flex items-center gap-2">
           <AlertTriangle className="w-5 h-5 text-destructive shrink-0" />
-          <p className="text-sm font-mono text-destructive/80">{error}</p>
+          <p className="text-sm font-mono text-destructive">{error}</p>
         </div>
       )}
 
@@ -107,7 +107,7 @@ export default function ComparePanel() {
           <p className="text-xs font-mono text-muted-foreground">Completed in {data.latency_ms}ms</p>
 
           {/* Comparison Table */}
-          <div className="border border-border rounded-xl overflow-hidden">
+          <div className="border border-border bg-card overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -131,7 +131,7 @@ export default function ComparePanel() {
                       <td className="px-4 py-3 font-mono font-bold text-primary">{item.ticker}</td>
                       <td className="px-4 py-3 text-foreground/80">{item.company_name}</td>
                       <td className="px-4 py-3 text-center">
-                        <span className={`px-2 py-0.5 rounded text-xs font-bold ${recBadge(item.recommendation)}`}>
+                        <span className={`px-2 py-0.5 border text-xs font-bold ${recBadge(item.recommendation)}`}>
                           {item.recommendation}
                         </span>
                       </td>
@@ -163,21 +163,21 @@ export default function ComparePanel() {
                 { subject: 'Risk', A: item.risk_score * 100 },
               ]
               return (
-                <div key={item.ticker} className="p-4 border border-border bg-card rounded-xl">
+                <div key={item.ticker} className="p-4 border border-border bg-card">
                   <div className="flex items-center justify-between mb-2">
                     <span className="font-mono font-bold text-primary">{item.ticker}</span>
-                    <span className={`px-2 py-0.5 rounded text-xs font-bold ${recBadge(item.recommendation)}`}>
+                    <span className={`px-2 py-0.5 border text-[10px] tracking-widest font-bold ${recBadge(item.recommendation)}`}>
                       {item.recommendation}
                     </span>
                   </div>
                   <div className="h-[200px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <RadarChart cx="50%" cy="50%" outerRadius="70%" data={chartData}>
-                        <PolarGrid stroke="#1a243d" />
-                        <PolarAngleAxis dataKey="subject" tick={{ fill: '#8B95A5', fontSize: 10, fontFamily: 'monospace' }} />
+                        <PolarGrid stroke="#334155" />
+                        <PolarAngleAxis dataKey="subject" tick={{ fill: '#94A3B8', fontSize: 10, fontFamily: 'monospace' }} />
                         <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
-                        <Radar dataKey="A" stroke="#0066FF" strokeWidth={2} fill="#0066FF" fillOpacity={0.15} />
-                        <Tooltip contentStyle={{ backgroundColor: '#0D1322', borderColor: '#1a243d', color: '#fff', fontSize: 12 }} />
+                        <Radar dataKey="A" stroke="#3B82F6" strokeWidth={2} fill="#3B82F6" fillOpacity={0.15} />
+                        <Tooltip contentStyle={{ backgroundColor: '#0F172A', borderColor: '#334155', color: '#fff', fontSize: 12, fontFamily: 'monospace' }} />
                       </RadarChart>
                     </ResponsiveContainer>
                   </div>

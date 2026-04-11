@@ -3,10 +3,10 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from .base_agent import BaseGroqAgent, FinancialAnalysis
+from .base_agent import BaseGeminiAgent, FinancialAnalysis
 
 
-class FinancialAgent(BaseGroqAgent):
+class FinancialAgent(BaseGeminiAgent):
     async def analyze(self, financials: dict[str, Any]) -> FinancialAnalysis:
         normalized = {
             "pe_ratio": financials.get("pe_ratio"),

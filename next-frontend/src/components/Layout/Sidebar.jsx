@@ -61,8 +61,8 @@ export default function Sidebar() {
   const quickAdds = ['RELIANCE.NS', 'TCS.NS', 'HDFCBANK.NS', 'AAPL', 'NVDA']
 
   return (
-    <aside className="w-[280px] bg-secondary/30 border-r border-border flex flex-col fixed left-0 top-[52px] bottom-0 z-10">
-      <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-6 flex flex-col custom-scrollbar">
+    <aside className="w-[280px] bg-black/40 backdrop-blur-xl border-r border-white/5 flex flex-col fixed left-0 top-[60px] bottom-0 z-10 transition-all duration-300">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden p-5 space-y-6 flex flex-col custom-scrollbar">
 
         {/* Watchlist Section */}
         <div className="space-y-3">
@@ -80,10 +80,10 @@ export default function Sidebar() {
                 value={addInput}
                 onChange={(e) => setAddInput(e.target.value)}
                 placeholder="AAPL, TCS.NS..."
-                className="flex-1 bg-background border border-border rounded px-2 py-1 text-xs font-mono focus:outline-none focus:border-primary/50"
+                className="flex-1 bg-black/50 border border-white/10 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 shadow-inner"
                 autoFocus
               />
-              <button type="submit" className="px-2 py-1 bg-primary/20 text-primary rounded text-xs hover:bg-primary/30 transition-colors">Add</button>
+              <button type="submit" className="px-3 py-1.5 bg-primary hover:bg-primary/90 text-white rounded-lg text-xs transition-colors shadow-[0_0_10px_rgba(139,92,246,0.3)]">Add</button>
               <button type="button" onClick={() => setShowAdd(false)} className="px-1 py-1 text-muted-foreground hover:text-foreground">
                 <X className="w-3 h-3" />
               </button>
@@ -105,18 +105,18 @@ export default function Sidebar() {
                   <div key={item.ticker} className="group flex items-center">
                     <button
                       onClick={() => setTicker(item.ticker)}
-                      className={`flex-1 flex items-center justify-between px-3 py-2 rounded-md transition-colors font-mono text-sm ${
+                      className={`flex-1 flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-300 text-sm ${
                         activeTicker === item.ticker
-                          ? 'bg-primary/20 border border-primary/30 text-foreground'
-                          : 'hover:bg-card border border-transparent text-muted-foreground hover:text-foreground'
+                          ? 'bg-gradient-to-r from-primary/20 to-transparent border border-primary/30 shadow-[0_0_15px_rgba(139,92,246,0.15)] text-foreground'
+                          : 'hover:bg-white/5 border border-transparent text-muted-foreground hover:text-foreground'
                       }`}
                     >
                       <div className="flex flex-col items-start">
                         <span className="text-xs font-bold">{item.ticker}</span>
                         {price != null && <span className="text-[10px] text-muted-foreground">{price.toFixed(2)}</span>}
                       </div>
-                      <div className={`flex items-center gap-1 text-xs ${change >= 0 ? 'text-success' : 'text-destructive'}`}>
-                        {change >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3"/>}
+                      <div className={`flex items-center gap-1 text-xs font-bold ${change >= 0 ? 'text-success drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'text-destructive drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]'}`}>
+                        {change >= 0 ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5"/>}
                         <span>{Math.abs(change).toFixed(2)}%</span>
                       </div>
                     </button>
@@ -144,7 +144,7 @@ export default function Sidebar() {
               <button
                 key={ticker}
                 onClick={() => setTicker(ticker)}
-                className={`text-xs font-mono px-2 py-1 bg-card border transition-all rounded ${activeTicker === ticker ? 'border-primary text-primary' : 'border-border text-muted-foreground hover:border-primary/50 hover:text-foreground'}`}
+                className={`text-[11px] font-bold px-2.5 py-1.5 transition-all duration-300 rounded-lg ${activeTicker === ticker ? 'bg-primary border-primary text-white shadow-[0_0_12px_rgba(139,92,246,0.5)]' : 'bg-black/30 border border-white/10 text-muted-foreground hover:border-primary/50 hover:text-foreground'}`}
               >
                 {ticker}
               </button>

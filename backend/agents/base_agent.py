@@ -5,10 +5,10 @@ import os
 from abc import ABC, abstractmethod
 from typing import Any, TypeVar
 
-from groq import AsyncGroq
+from google import genai
 from pydantic import BaseModel, ConfigDict, Field
 
-DEFAULT_GROQ_MODEL = "llama-3.3-70b-versatile"
+DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
 TModel = TypeVar("TModel", bound=BaseModel)
 
 
@@ -82,44 +82,44 @@ class DiscoveryAnalysis(BaseModel):
 # ------------------------------------------------------------------
 # Base Agent
 # ------------------------------------------------------------------
-class BaseGroqAgent(ABC):
+class BaseGeminiAgent(ABC):
     def __init__(self, api_key: str | None = None, model: str | None = None) -> None:
-        resolved_api_key = api_key or os.getenv("GROQ_API_KEY")
+        resolved_api_key = api_key or os.getenv("GEMINI_API_KEY")
         if not resolved_api_key:
-            raise ValueError("GROQ API key is required. Set GROQ_API_KEY or pass api_key.")
+            raise ValueError("GEMINI API key is required. Set GEMINI_API_KEY or pass api_key.")
 
-        self.client = AsyncGroq(api_key=resolved_api_key)
-        self.model = model or os.getenv("GROQ_MODEL") or DEFAULT_GROQ_MODEL
+        self.client = genai.Client(api_key=resolved_api_key)
+        self.model = model or os.getenv("GEMINI_MODEL") or DEFAULT_GEMINI_MODEL
 
     @abstractmethod
     async def analyze(self, payload: Any) -> BaseModel:
         raise NotImplementedError
 
     async def _complete_json(self, prompt: str) -> dict[str, Any]:
-        completion = await self.client.chat.completions.create(
-            model=self.model,
+        system_instruction = "You are a senior financial analyst. Return only valid JSON. Do not include markdown."
+        config = genai.types.GenerateContentConfig(
             temperature=0,
-            response_format={"type": "json_object"},
-            messages=[
-                {
-                    "role": "system",
-                    "content": "You are a senior financial analyst. Return only valid JSON. Do not include markdown.",
-                },
-                {"role": "user", "content": prompt},
-            ],
+            system_instruction=system_instruction,
+            response_mime_type="application/json"
+        )
+        
+        response = await self.client.aio.models.generate_content(
+            model=self.model,
+            contents=prompt,
+            config=config,
         )
 
-        message = completion.choices[0].message.content if completion.choices else None
+        message = response.text
         if not message:
-            raise RuntimeError("Groq returned an empty response.")
+            raise RuntimeError("Gemini returned an empty response.")
 
         try:
             parsed = json.loads(message)
         except json.JSONDecodeError as exc:
-            raise RuntimeError("Groq returned invalid JSON.") from exc
+            raise RuntimeError("Gemini returned invalid JSON.") from exc
 
         if not isinstance(parsed, dict):
-            raise RuntimeError("Groq JSON response must be an object.")
+            raise RuntimeError("Gemini JSON response must be an object.")
 
         return parsed
 

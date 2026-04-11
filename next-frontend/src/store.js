@@ -6,7 +6,7 @@ export const useStore = create((set, get) => ({
   setTicker: (ticker) => set({ activeTicker: ticker.toUpperCase() }),
 
   // ── Navigation ──────────────────────────────────────────────────
-  activeTab: 'analysis',
+  activeTab: 'dashboard',
   setTab: (tab) => set({ activeTab: tab }),
 
   // ── Watchlist (fetched from backend) ────────────────────────────

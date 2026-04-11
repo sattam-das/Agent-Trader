@@ -54,24 +54,24 @@ export default function BacktestPanel() {
   return (
     <div className="space-y-6 animate-fade-in pb-12">
       {/* Config Panel */}
-      <div className="glass-card rounded-xl p-6 space-y-5">
+      <div className="bg-card border border-border p-4 space-y-5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-emerald-500/15 flex items-center justify-center">
-              <TestTube className="w-5 h-5 text-emerald-400" />
+            <div className="p-2 border border-border bg-secondary text-primary flex items-center justify-center">
+              <TestTube className="w-5 h-5" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-foreground">Backtester</h1>
-              <p className="text-xs text-muted-foreground">Test strategies on <span className="text-primary font-mono">{activeTicker}</span></p>
+              <h1 className="text-xl font-bold font-mono uppercase text-foreground">Backtester</h1>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1">Test strategies on <span className="text-primary font-mono">{activeTicker}</span></p>
             </div>
           </div>
           {/* Mode Toggle */}
-          <div className="flex gap-1 bg-secondary/50 p-1 rounded-lg">
-            <button onClick={() => setMode('strategy')} className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all flex items-center gap-1.5 ${mode === 'strategy' ? 'bg-primary text-white' : 'text-muted-foreground hover:text-foreground'}`}>
-              <Play className="w-3 h-3" /> Strategy
+          <div className="flex border border-border bg-secondary">
+            <button onClick={() => setMode('strategy')} className={`px-4 py-2 text-xs font-mono transition-none flex items-center gap-1.5 border-r border-border last:border-r-0 ${mode === 'strategy' ? 'bg-primary text-white' : 'text-muted-foreground hover:text-foreground'}`}>
+              <Play className="w-3 h-3" /> STRATEGY
             </button>
-            <button onClick={() => setMode('nl')} className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all flex items-center gap-1.5 ${mode === 'nl' ? 'bg-primary text-white' : 'text-muted-foreground hover:text-foreground'}`}>
-              <MessageSquare className="w-3 h-3" /> Natural Language
+            <button onClick={() => setMode('nl')} className={`px-4 py-2 text-xs font-mono transition-none flex items-center gap-1.5 border-r border-border last:border-r-0 ${mode === 'nl' ? 'bg-primary text-white' : 'text-muted-foreground hover:text-foreground'}`}>
+              <MessageSquare className="w-3 h-3" /> NL AI
             </button>
           </div>
         </div>
@@ -79,11 +79,11 @@ export default function BacktestPanel() {
         {mode === 'strategy' ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Strategy</label>
+              <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Strategy</label>
               <select
                 value={selectedStrategy}
                 onChange={(e) => setSelectedStrategy(e.target.value)}
-                className="w-full bg-background border border-border rounded-md px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary/50"
+                className="w-full bg-background border border-border px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary"
               >
                 {strategies.map(s => (
                   <option key={s.id} value={s.id}>{s.name}</option>
@@ -91,51 +91,51 @@ export default function BacktestPanel() {
               </select>
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Period</label>
-              <div className="flex gap-2">
+              <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Period</label>
+              <div className="flex border border-border">
                 {periods.map(p => (
-                  <button key={p} onClick={() => setPeriod(p)} className={`flex-1 px-3 py-2 rounded-md text-sm font-mono transition-all ${period === p ? 'bg-primary text-white' : 'bg-secondary text-muted-foreground hover:text-foreground border border-border'}`}>
+                  <button key={p} onClick={() => setPeriod(p)} className={`flex-1 px-3 py-2 text-sm font-mono transition-none border-r border-border last:border-r-0 ${period === p ? 'bg-primary text-white' : 'bg-secondary text-muted-foreground hover:text-foreground'}`}>
                     {p}
                   </button>
                 ))}
               </div>
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Capital (₹)</label>
+              <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Capital (₹)</label>
               <input
                 type="number"
                 value={capital}
                 onChange={(e) => setCapital(Number(e.target.value))}
-                className="w-full bg-background border border-border rounded-md px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary/50"
+                className="w-full bg-background border border-border px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary"
               />
             </div>
           </div>
         ) : (
-          <div className="space-y-3">
-            <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" /> Describe Your Strategy in English
+          <div className="space-y-3 border-t border-border pt-4">
+            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+              <Sparkles className="w-3.5 h-3.5 text-primary" /> Describe Your Strategy in English
             </label>
             <textarea
               value={nlPrompt}
               onChange={(e) => setNLPrompt(e.target.value)}
               rows={3}
-              placeholder='e.g. "Buy when RSI drops below 30, sell when it goes above 70" or "Golden cross strategy with 50 and 200 day SMA"'
-              className="w-full bg-background border border-border rounded-lg px-4 py-3 text-sm font-mono focus:outline-none focus:border-primary/50 resize-none placeholder:text-muted-foreground/50"
+              placeholder='e.g. "Buy when RSI drops below 30, sell when it goes above 70"'
+              className="w-full bg-background border border-border px-4 py-3 text-sm font-mono focus:outline-none focus:border-primary resize-none placeholder:text-muted-foreground/50"
             />
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Period</label>
-                <div className="flex gap-2">
+                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Period</label>
+                <div className="flex border border-border">
                   {periods.map(p => (
-                    <button key={p} onClick={() => setPeriod(p)} className={`flex-1 px-3 py-2 rounded-md text-sm font-mono transition-all ${period === p ? 'bg-primary text-white' : 'bg-secondary text-muted-foreground hover:text-foreground border border-border'}`}>
+                    <button key={p} onClick={() => setPeriod(p)} className={`flex-1 px-3 py-2 text-sm font-mono transition-none border-r border-border last:border-r-0 ${period === p ? 'bg-primary text-white' : 'bg-secondary text-muted-foreground hover:text-foreground'}`}>
                       {p}
                     </button>
                   ))}
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Capital (₹)</label>
-                <input type="number" value={capital} onChange={(e) => setCapital(Number(e.target.value))} className="w-full bg-background border border-border rounded-md px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary/50" />
+                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Capital (₹)</label>
+                <input type="number" value={capital} onChange={(e) => setCapital(Number(e.target.value))} className="w-full bg-background border border-border px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary" />
               </div>
             </div>
           </div>
@@ -144,29 +144,29 @@ export default function BacktestPanel() {
         <button
           onClick={handleRun}
           disabled={loading || (mode === 'nl' && !nlPrompt.trim())}
-          className="px-6 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg font-medium text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          className="px-6 py-2.5 bg-primary hover:bg-primary/80 text-white font-mono text-sm uppercase transition-none disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 border border-primary w-fit"
         >
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
-          {loading ? 'Running Backtest...' : 'Run Backtest'}
+          {loading ? 'RUNNING BACKTEST...' : 'RUN BACKTEST'}
         </button>
       </div>
 
       {error && (
-        <div className="p-4 border border-destructive/50 bg-destructive/10 rounded-xl flex items-start gap-2">
+        <div className="p-4 border border-destructive bg-destructive/10 flex items-start gap-2">
           <AlertTriangle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
-          <p className="text-sm font-mono text-destructive/80">{typeof error === 'string' ? error : JSON.stringify(error)}</p>
+          <p className="text-sm font-mono text-destructive">{typeof error === 'string' ? error : JSON.stringify(error)}</p>
         </div>
       )}
 
       {/* Results */}
       {result && (
-        <div className="space-y-6 stagger-children">
+        <div className="space-y-6">
           {/* NL Parsed Strategy */}
           {result.parsed_strategy && (
-            <div className="glass-card rounded-xl p-5 space-y-3">
+            <div className="bg-card border border-border p-4 space-y-3">
               <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-amber-400" />
-                <h3 className="text-sm font-bold text-foreground">AI Parsed Strategy</h3>
+                <Sparkles className="w-4 h-4 text-primary" />
+                <h3 className="text-sm font-bold font-mono text-foreground uppercase">AI Parsed Strategy</h3>
               </div>
               <p className="text-sm text-muted-foreground">{result.parsed_strategy.description}</p>
               <div className="grid grid-cols-2 gap-4 text-xs font-mono">
@@ -194,8 +194,8 @@ export default function BacktestPanel() {
               { label: 'Final Value', value: result.final_value != null ? `₹${result.final_value.toLocaleString('en-IN', { maximumFractionDigits: 0 })}` : '—', color: 'text-primary' },
               { label: 'Buy & Hold', value: result.buy_hold_return_pct != null ? `${result.buy_hold_return_pct.toFixed(2)}%` : '—', color: 'text-muted-foreground' },
             ].map(m => (
-              <div key={m.label} className="p-4 bg-card border border-border rounded-xl space-y-1">
-                <p className="text-xs text-muted-foreground uppercase tracking-wider font-bold">{m.label}</p>
+              <div key={m.label} className="p-4 bg-card border border-border space-y-1">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">{m.label}</p>
                 <p className={`text-xl font-mono font-bold ${m.color}`}>{m.value}</p>
               </div>
             ))}
@@ -203,23 +203,23 @@ export default function BacktestPanel() {
 
           {/* Equity Curve */}
           {result.equity_curve && result.equity_curve.length > 0 && (
-            <div className="border border-border bg-card rounded-xl p-6">
-              <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-4">Equity Curve</h3>
+            <div className="border border-border bg-card p-4">
+              <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-4">Equity Curve</h3>
               <div className="h-[350px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={result.equity_curve.map((v, i) => ({ i, value: v }))}>
                     <defs>
                       <linearGradient id="eqGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#34C759" stopOpacity={0.3} />
-                        <stop offset="100%" stopColor="#34C759" stopOpacity={0} />
+                        <stop offset="0%" stopColor="#3B82F6" stopOpacity={0.3} />
+                        <stop offset="100%" stopColor="#3B82F6" stopOpacity={0} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#1a243d" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                     <XAxis dataKey="i" tick={false} />
-                    <YAxis tick={{ fill: '#8B95A5', fontSize: 10 }} tickFormatter={(v) => `₹${(v/1000).toFixed(0)}K`} />
-                    <Tooltip contentStyle={{ backgroundColor: '#0D1322', borderColor: '#1a243d', color: '#fff', fontFamily: 'monospace', fontSize: 12 }} formatter={(v) => [`₹${v.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`, 'Portfolio']} />
-                    <ReferenceLine y={capital} stroke="#8B95A5" strokeDasharray="3 3" label={{ fill: '#8B95A5', value: 'Initial', fontSize: 10 }} />
-                    <Area type="monotone" dataKey="value" stroke="#34C759" strokeWidth={2} fill="url(#eqGrad)" />
+                    <YAxis tick={{ fill: '#94A3B8', fontSize: 10 }} tickFormatter={(v) => `₹${(v/1000).toFixed(0)}K`} />
+                    <Tooltip contentStyle={{ backgroundColor: '#0F172A', borderColor: '#334155', color: '#fff', fontFamily: 'monospace', fontSize: 12 }} formatter={(v) => [`₹${v.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`, 'Portfolio']} />
+                    <ReferenceLine y={capital} stroke="#94A3B8" strokeDasharray="3 3" label={{ fill: '#94A3B8', value: 'Initial', fontSize: 10 }} />
+                    <Area type="monotone" dataKey="value" stroke="#3B82F6" strokeWidth={2} fill="url(#eqGrad)" />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
@@ -228,9 +228,9 @@ export default function BacktestPanel() {
 
           {/* Trade Log */}
           {result.trades && result.trades.length > 0 && (
-            <div className="border border-border rounded-xl overflow-hidden">
-              <div className="p-4 bg-secondary/30">
-                <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Trade Log ({result.trades.length} trades)</h3>
+            <div className="border border-border bg-card overflow-hidden">
+              <div className="p-3 border-b border-border bg-secondary">
+                <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Trade Log ({result.trades.length} trades)</h3>
               </div>
               <div className="overflow-x-auto max-h-[300px] overflow-y-auto custom-scrollbar">
                 <table className="w-full text-xs font-mono">

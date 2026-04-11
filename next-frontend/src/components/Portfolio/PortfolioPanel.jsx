@@ -117,31 +117,31 @@ export default function PortfolioPanel() {
   return (
     <div className="space-y-6 animate-fade-in pb-12">
       {/* Header */}
-      <div className="glass-card rounded-xl p-6">
+      <div className="bg-card border border-border p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-blue-500/15 flex items-center justify-center">
-              <Briefcase className="w-5 h-5 text-blue-400" />
+            <div className="p-2 border border-border bg-secondary text-primary flex items-center justify-center">
+              <Briefcase className="w-5 h-5" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-foreground">Portfolio</h1>
-              <p className="text-xs text-muted-foreground">Track your holdings with live prices</p>
+              <h1 className="text-xl font-bold font-mono uppercase text-foreground">Portfolio</h1>
+              <p className="text-[10px] uppercase font-mono tracking-widest text-muted-foreground mt-1">Track your holdings with live prices</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <button
               onClick={refreshQuotes}
               disabled={refreshing}
-              className="px-3 py-2 bg-secondary hover:bg-secondary/80 rounded-lg text-sm flex items-center gap-1.5 transition-all text-muted-foreground hover:text-foreground"
+              className="px-4 py-2 bg-secondary border border-border text-xs font-mono transition-none text-muted-foreground hover:text-foreground flex items-center gap-1.5 uppercase"
             >
-              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-              Refresh
+              <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+              REFRESH
             </button>
             <button
               onClick={() => setShowForm(!showForm)}
-              className="px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg text-sm font-medium flex items-center gap-1.5 transition-all"
+              className="px-4 py-2 bg-primary hover:bg-primary/80 text-white border border-primary text-xs font-mono flex items-center gap-1.5 transition-none uppercase"
             >
-              <Plus className="w-4 h-4" /> Add Holding
+              <Plus className="w-3.5 h-3.5" /> ADD HOLDING
             </button>
           </div>
         </div>
@@ -156,23 +156,23 @@ export default function PortfolioPanel() {
 
       {/* Summary Cards */}
       {holdings.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 stagger-children">
-          <div className="p-4 bg-card border border-border rounded-xl space-y-1">
-            <p className="text-xs text-muted-foreground uppercase tracking-wider font-bold">Total Invested</p>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="p-4 bg-card border border-border space-y-1">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Total Invested</p>
             <p className="text-xl font-mono font-bold text-foreground">₹{totalInvested.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
           </div>
-          <div className="p-4 bg-card border border-border rounded-xl space-y-1">
-            <p className="text-xs text-muted-foreground uppercase tracking-wider font-bold">Current Value</p>
+          <div className="p-4 bg-card border border-border space-y-1">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Current Value</p>
             <p className="text-xl font-mono font-bold text-primary">₹{totalValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
           </div>
-          <div className="p-4 bg-card border border-border rounded-xl space-y-1">
-            <p className="text-xs text-muted-foreground uppercase tracking-wider font-bold">Total P&L</p>
+          <div className="p-4 bg-card border border-border space-y-1">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Total P&L</p>
             <p className={`text-xl font-mono font-bold ${totalPnl >= 0 ? 'text-success' : 'text-destructive'}`}>
               {totalPnl >= 0 ? '+' : ''}₹{totalPnl.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
             </p>
           </div>
-          <div className="p-4 bg-card border border-border rounded-xl space-y-1">
-            <p className="text-xs text-muted-foreground uppercase tracking-wider font-bold">Return</p>
+          <div className="p-4 bg-card border border-border space-y-1">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Return</p>
             <p className={`text-xl font-mono font-bold flex items-center gap-1 ${totalReturn >= 0 ? 'text-success' : 'text-destructive'}`}>
               {totalReturn >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
               {(totalReturn * 100).toFixed(2)}%
@@ -183,31 +183,31 @@ export default function PortfolioPanel() {
 
       {/* Add Holding Form */}
       {showForm && (
-        <form onSubmit={handleAdd} className="border border-primary/30 bg-card rounded-xl p-5 space-y-4 animate-fade-in">
-          <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-            <Plus className="w-4 h-4 text-primary" /> Add Holding
+        <form onSubmit={handleAdd} className="border border-border bg-card p-5 space-y-4">
+          <h3 className="text-sm font-bold text-foreground uppercase tracking-widest flex items-center gap-2">
+            <Plus className="w-4 h-4 text-primary" /> ADD HOLDING
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div className="space-y-1">
-              <label className="text-xs text-muted-foreground font-bold uppercase">Ticker</label>
-              <input value={form.ticker} onChange={(e) => setForm({ ...form, ticker: e.target.value })} className="w-full bg-background border border-border rounded-md px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary/50" required />
+              <label className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Ticker</label>
+              <input value={form.ticker} onChange={(e) => setForm({ ...form, ticker: e.target.value })} className="w-full bg-background border border-border px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary" required />
             </div>
             <div className="space-y-1">
-              <label className="text-xs text-muted-foreground font-bold uppercase">Shares</label>
-              <input type="number" step="any" value={form.shares} onChange={(e) => setForm({ ...form, shares: e.target.value })} className="w-full bg-background border border-border rounded-md px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary/50" required />
+              <label className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Shares</label>
+              <input type="number" step="any" value={form.shares} onChange={(e) => setForm({ ...form, shares: e.target.value })} className="w-full bg-background border border-border px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary" required />
             </div>
             <div className="space-y-1">
-              <label className="text-xs text-muted-foreground font-bold uppercase">Avg Price</label>
-              <input type="number" step="any" value={form.avg_price} onChange={(e) => setForm({ ...form, avg_price: e.target.value })} className="w-full bg-background border border-border rounded-md px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary/50" required />
+              <label className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Avg Price</label>
+              <input type="number" step="any" value={form.avg_price} onChange={(e) => setForm({ ...form, avg_price: e.target.value })} className="w-full bg-background border border-border px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary" required />
             </div>
             <div className="space-y-1">
-              <label className="text-xs text-muted-foreground font-bold uppercase">Notes</label>
-              <input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Optional" className="w-full bg-background border border-border rounded-md px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary/50" />
+              <label className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Notes</label>
+              <input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Optional" className="w-full bg-background border border-border px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary" />
             </div>
           </div>
           <div className="flex gap-2">
-            <button type="submit" className="px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg text-sm font-medium transition-all">Add</button>
-            <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 bg-secondary hover:bg-secondary/80 text-foreground rounded-lg text-sm transition-all">Cancel</button>
+            <button type="submit" className="px-4 py-2 bg-primary hover:bg-primary/80 text-white border border-primary font-mono text-sm uppercase transition-none">ADD TO PORTFOLIO</button>
+            <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 bg-secondary border border-border hover:bg-secondary/80 text-foreground font-mono text-sm transition-none uppercase">CANCEL</button>
           </div>
         </form>
       )}
@@ -216,7 +216,7 @@ export default function PortfolioPanel() {
       {loading ? (
         <div className="flex justify-center p-12"><Loader2 className="w-8 h-8 text-primary animate-spin" /></div>
       ) : enriched.length > 0 ? (
-        <div className="border border-border rounded-xl overflow-hidden">
+        <div className="border border-border bg-card overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>

@@ -42,14 +42,14 @@ export default function ScreenerPanel() {
   return (
     <div className="space-y-6 animate-fade-in pb-12">
       {/* Config */}
-      <div className="glass-card rounded-xl p-6 space-y-5">
+      <div className="bg-card border border-border p-4 space-y-5">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-pink-500/15 flex items-center justify-center">
-            <Filter className="w-5 h-5 text-pink-400" />
+          <div className="p-2 border border-border bg-secondary text-primary flex items-center justify-center">
+            <Filter className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Stock Screener</h1>
-            <p className="text-xs text-muted-foreground">Scan markets using technical filters</p>
+            <h1 className="text-xl font-bold font-mono uppercase text-foreground">Stock Screener</h1>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1">Scan markets using technical filters</p>
           </div>
         </div>
 
@@ -61,10 +61,10 @@ export default function ScreenerPanel() {
                 <button
                   key={key}
                   onClick={() => setSelectedPreset(key)}
-                  className={`px-3 py-1.5 text-xs font-mono rounded-md transition-all ${
+                  className={`px-3 py-1.5 text-xs font-mono transition-none border ${
                     selectedPreset === key
-                      ? 'bg-primary text-white'
-                      : 'bg-secondary text-muted-foreground hover:text-foreground border border-border'
+                      ? 'bg-primary text-white border-primary'
+                      : 'bg-secondary text-muted-foreground hover:text-foreground border-border'
                   }`}
                 >
                   {key.replace(/_/g, ' ').toUpperCase()} ({count})
@@ -91,10 +91,10 @@ export default function ScreenerPanel() {
         <button
           onClick={handleScan}
           disabled={loading}
-          className="px-6 py-2.5 bg-pink-500 hover:bg-pink-600 text-white rounded-lg font-medium text-sm transition-all disabled:opacity-50 flex items-center gap-2"
+          className="px-6 py-2.5 bg-primary hover:bg-primary/80 text-white font-mono text-sm transition-none disabled:opacity-50 flex items-center gap-2 border border-primary w-fit"
         >
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-          {loading ? 'Scanning...' : 'Run Screener'}
+          {loading ? 'SCANNING...' : 'RUN SCREENER'}
         </button>
       </div>
 
@@ -115,7 +115,7 @@ export default function ScreenerPanel() {
           </div>
 
           {data.results && data.results.length > 0 ? (
-            <div className="border border-border rounded-xl overflow-hidden">
+            <div className="border border-border overflow-hidden bg-card">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>

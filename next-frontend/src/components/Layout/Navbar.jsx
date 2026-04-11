@@ -83,9 +83,9 @@ export default function Navbar() {
   const changePct = activeQuote?.change_pct ?? 0
 
   return (
-    <header className="h-[52px] border-b border-border bg-card flex items-center justify-between px-6 shrink-0 z-20 w-full fixed top-0">
+    <header className="h-[60px] border-b border-white/5 bg-black/40 backdrop-blur-xl flex items-center justify-between px-8 shrink-0 z-30 w-full fixed top-0 transition-all duration-300">
       <div className="flex items-center gap-2">
-        <BrainCircuit className="w-5 h-5 text-primary" />
+        <img src="/logo.png" alt="AgentTrader Logo" className="w-7 h-7 object-contain rounded-md shadow-sm" />
         <span className="font-mono font-bold tracking-tight text-lg shadow-sm">AgentTrader</span>
         <span className="text-xs font-mono px-1.5 py-0.5 bg-primary/10 text-primary rounded ml-1">v3.1</span>
       </div>
@@ -104,7 +104,7 @@ export default function Navbar() {
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
-            className="w-full bg-background border border-border rounded-md pl-10 pr-4 py-1.5 text-sm font-mono focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-shadow text-foreground placeholder:text-muted-foreground/50"
+            className="w-full bg-black/50 border border-white/10 rounded-full shadow-inner pl-11 pr-4 py-2 text-sm font-sans focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all text-foreground placeholder:text-muted-foreground/50"
           />
         </form>
 
@@ -135,14 +135,15 @@ export default function Navbar() {
       </div>
 
       {/* Active Ticker Quote */}
-      <div className="flex items-center gap-4 bg-background px-3 py-1.5 rounded-md border border-border">
-        <span className="font-mono font-bold text-cyan-400">{activeTicker}</span>
-        <div className="w-[1px] h-4 bg-border"></div>
-        <span className="font-mono text-sm">
+      {/* Active Ticker Quote */}
+      <div className="flex items-center gap-4 bg-slate-950 px-5 py-2 rounded-full border border-slate-700 shadow-lg">
+        <span className="font-bold text-white tracking-widest">{activeTicker}</span>
+        <div className="w-[1px] h-4 bg-slate-700"></div>
+        <span className="font-mono text-sm font-bold text-white">
           {price != null ? (activeTicker.endsWith('.NS') || activeTicker.endsWith('.BO') ? '₹' : '$') + price.toFixed(2) : '—'}
         </span>
-        <div className={`flex items-center gap-1 text-xs font-mono px-1.5 py-0.5 rounded ${changePct >= 0 ? 'bg-success/15 text-success' : 'bg-destructive/15 text-destructive'}`}>
-          {changePct >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3"/>}
+        <div className={`flex items-center gap-1.5 text-xs font-bold px-2 py-0.5 rounded-full ${changePct >= 0 ? 'bg-success/20 text-success' : 'bg-destructive/20 text-destructive'}`}>
+          {changePct >= 0 ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5"/>}
           <span>{Math.abs(changePct).toFixed(2)}%</span>
         </div>
       </div>

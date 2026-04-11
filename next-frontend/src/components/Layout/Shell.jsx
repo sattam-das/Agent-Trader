@@ -13,7 +13,10 @@ import JournalPanel from '../Journal/JournalPanel'
 import PortfolioPanel from '../Portfolio/PortfolioPanel'
 import { useStore } from '@/store'
 
+import DashboardPanel from '../Dashboard/DashboardPanel'
+
 const TAB_COMPONENTS = {
+  dashboard: DashboardPanel,
   discover: DiscoverPanel,
   compare: ComparePanel,
   analysis: AIAnalysis,
@@ -34,8 +37,8 @@ export default function Shell() {
       <Navbar />
       <Sidebar />
       <TabBar />
-      <main className="fixed top-[94px] left-[280px] right-0 bottom-0 overflow-y-auto p-8 bg-background custom-scrollbar">
-        <div className="max-w-[1400px] mx-auto w-full">
+      <main className="fixed top-[112px] left-[280px] right-0 bottom-0 overflow-y-auto p-6 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 custom-scrollbar selection:bg-primary/30">
+        <div className="w-full h-full max-w-7xl mx-auto">
           <ActiveComponent />
         </div>
       </main>

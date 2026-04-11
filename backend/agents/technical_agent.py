@@ -7,10 +7,10 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from .base_agent import BaseGroqAgent, TechnicalAnalysis
+from .base_agent import BaseGeminiAgent, TechnicalAnalysis
 
 
-class TechnicalAgent(BaseGroqAgent):
+class TechnicalAgent(BaseGeminiAgent):
     async def analyze(self, technical_data: dict[str, Any]) -> TechnicalAnalysis:
         snapshot = technical_data.get("snapshot", {})
         signals = technical_data.get("signals", [])
