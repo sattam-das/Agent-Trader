@@ -49,6 +49,15 @@ export default function DashboardPanel() {
     )
   }
 
+  // Transform categories dict into array for rendering
+  const pulseCategories = data.pulse?.categories
+    ? Object.entries(data.pulse.categories).map(([key, cat]) => ({
+        id: key,
+        name: cat.label || key,
+        articles: cat.articles || [],
+      }))
+    : []
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-12 w-full">
       <div className="text-left space-y-2 pt-2 pb-6 border-b border-white/5">
@@ -70,17 +79,17 @@ export default function DashboardPanel() {
            </div>
            
            <div className="glass-card p-4 h-[400px] overflow-y-auto custom-scrollbar space-y-4">
-              {!data.pulse ? (
+              {pulseCategories.length === 0 ? (
                  <div className="p-8 text-center text-muted-foreground border border-dashed border-white/10 rounded-xl flex flex-col items-center">
                    <AlertTriangle className="w-6 h-6 mb-2 opacity-50 text-accent" />
                    <p className="text-xs">MARKET PULSE UNAVAILABLE</p>
                  </div>
               ) : (
-                 data.pulse?.categories?.map((cat, idx) => (
-                    <div key={idx} className="space-y-3 pb-4 border-b border-white/5 last:border-0 last:pb-0">
+                 pulseCategories.map((cat) => (
+                    <div key={cat.id} className="space-y-3 pb-4 border-b border-white/5 last:border-0 last:pb-0">
                        <h3 className="text-[11px] font-bold text-accent uppercase tracking-widest">{cat.name}</h3>
                        {cat.articles.map((art, i) => (
-                          <a key={i} href={art.link} target="_blank" rel="noreferrer" className="block p-3.5 bg-black/20 rounded-xl border border-white/5 hover:border-primary/50 hover:bg-black/40 hover:-translate-y-0.5 transition-all duration-300">
+                          <a key={i} href={art.url} target="_blank" rel="noreferrer" className="block p-3.5 bg-black/20 rounded-xl border border-white/5 hover:border-primary/50 hover:bg-black/40 hover:-translate-y-0.5 transition-all duration-300">
                              <p className="text-sm font-medium text-foreground leading-snug line-clamp-2">{art.title}</p>
                              <div className="flex justify-between items-center mt-3">
                                 <span className="text-[10px] text-muted-foreground bg-white/5 px-2 py-0.5 rounded-full">{art.source}</span>
@@ -120,7 +129,7 @@ export default function DashboardPanel() {
                                 <span className={`w-1.5 h-1.5 rounded-full ${ev.impact === 'High' ? 'bg-destructive shadow-[0_0_8px_rgba(239,68,68,0.6)]' : ev.impact === 'Medium' ? 'bg-amber-500' : 'bg-muted-foreground'}`}></span>
                                 <span className="text-muted-foreground uppercase">{ev.impact}</span>
                               </span>
-                              <span className="bg-white/5 text-muted-foreground px-2 py-0.5 rounded-full">{ev.country.toUpperCase()}</span>
+                              <span className="bg-white/5 text-muted-foreground px-2 py-0.5 rounded-full">{ev.country?.toUpperCase()}</span>
                            </div>
                         </div>
                     </div>

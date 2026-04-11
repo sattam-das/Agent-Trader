@@ -81,9 +81,16 @@ export default function AIAnalysis() {
   }
   const statusColor = recColors[result.recommendation] || 'bg-secondary text-foreground border-border'
 
-  // Extract last known historical price
+  // Extract current price — prefer direct field, fallback to historical
   const priceValues = Object.values(data.historical_prices || {})
-  const currentPrice = priceValues.length > 0 ? priceValues[priceValues.length - 1] : 0.0
+  const currentPrice = data.current_price || (priceValues.length > 0 ? priceValues[priceValues.length - 1] : 0.0)
+
+  // Detect currency based on ticker suffix
+  const isIndianStock = data.ticker?.endsWith('.NS') || data.ticker?.endsWith('.BO')
+  const currencySymbol = isIndianStock ? '₹' : '$'
+
+  // Overall score: prefer final_score from breakdown, fallback to weighted_score
+  const overallScore = breakdown.final_score ?? breakdown.weighted_score ?? result.weighted_score ?? 0
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-12">
@@ -114,11 +121,11 @@ export default function AIAnalysis() {
              </div>
              <div className="space-y-1 border-l border-border pl-4">
                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">CURRENT PRICE</p>
-                <p className="text-lg font-mono text-primary">${currentPrice.toFixed(2)}</p>
+                <p className="text-lg font-mono text-primary">{currencySymbol}{currentPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
              </div>
              <div className="space-y-1 border-l border-border pl-4">
                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">OVERALL SCORE</p>
-                <p className="text-lg font-mono text-amber-500">{((result.weighted_score || 0) * 100).toFixed(1)} / 100</p>
+                <p className="text-lg font-mono text-amber-500">{(overallScore * 100).toFixed(1)} / 100</p>
              </div>
           </div>
         </div>
